@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Sparkles, Gem, Award, Users, MapPin, Star, X, Menu, LayoutDashboard,
   MessageSquare, Calendar, TrendingUp, Check, Edit3, Send, Plus, Globe,
-  Code2, Eye, Clock, CheckCircle2, AlertTriangle, BarChart3,
+  Code2, Clock, CheckCircle2, AlertTriangle, BarChart3,
   FileText, Coins, Hammer, ShieldCheck, ChevronLeft, ChevronRight, Minus,
   ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown, LogOut,
 } from "lucide-react";
@@ -1110,25 +1110,6 @@ function LangCurrencySwitchers({ lang, setLang, currency, setCurrency }) {
           <option key={c.code} value={c.code}>{c.code}</option>
         ))}
       </select>
-    </div>
-  );
-}
-
-function ModeSwitcher({ mode, setMode }) {
-  return (
-    <div className="flex items-center bg-[#1f1e24] border border-[#3a3940] rounded-full p-1 text-xs font-semibold">
-      <button
-        onClick={() => setMode("customer")}
-        className={"flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 " + (mode === "customer" ? "bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}
-      >
-        <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Customer</span>
-      </button>
-      <button
-        onClick={() => setMode("admin")}
-        className={"flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 " + (mode === "admin" ? "bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}
-      >
-        <LayoutDashboard className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Admin CMS</span>
-      </button>
     </div>
   );
 }
@@ -4939,7 +4920,7 @@ function HomepageManager({ content, setContent, settings, setSettings, heroPhoto
 /*  ADMIN PAGE (assembled)                                             */
 /* ------------------------------------------------------------------ */
 
-function AdminPage({ mode, setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps }) {
+function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps }) {
   const [tab, setTab] = useState("content");
 
   return (
@@ -4952,7 +4933,6 @@ function AdminPage({ mode, setMode, lang, setLang, currency, setCurrency, conten
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
-          <ModeSwitcher mode={mode} setMode={setMode} />
           <button
             onClick={() => { if (supabase) supabase.auth.signOut(); setMode("customer"); }}
             title="Logout"
@@ -5087,7 +5067,7 @@ export default function FamilySilverClassBaliApp() {
       ) : !session ? (
         <LoginGate onCancel={() => setMode("customer")} />
       ) : (
-        <AdminPage mode={mode} setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} />
+        <AdminPage setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} />
       )}
     </div>
   );
