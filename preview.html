@@ -1202,7 +1202,7 @@ function LoginGate({ onCancel }) {
 /*  CUSTOMER — HEADER                                                  */
 /* ------------------------------------------------------------------ */
 
-function CustomerHeader({ page, setPage, lang, setLang, currency, setCurrency, mode, setMode }) {
+function CustomerHeader({ page, setPage, lang, setLang, currency, setCurrency }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const t = (k, v) => tr(lang, k, v);
 
@@ -1233,7 +1233,6 @@ function CustomerHeader({ page, setPage, lang, setLang, currency, setCurrency, m
           <div className="hidden sm:flex">
             <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
           </div>
-          <ModeSwitcher mode={mode} setMode={setMode} />
           <button className="md:hidden text-[#E2E8F0]" onClick={() => setMenuOpen((v) => !v)}>
             {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -2689,7 +2688,7 @@ function Footer({ lang }) {
 /*  CUSTOMER PAGE (assembled)                                          */
 /* ------------------------------------------------------------------ */
 
-function CustomerPage({ page, setPage, mode, setMode, lang, setLang, currency, setCurrency, content, catalog, perGram, extras, reviews, settings, galleryPhotos, guestGalleryPhotos, instructors, asSeenIn, heroPhotos, instagramPhotos, setReservations }) {
+function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, content, catalog, perGram, extras, reviews, settings, galleryPhotos, guestGalleryPhotos, instructors, asSeenIn, heroPhotos, instagramPhotos, setReservations }) {
   const goPackages = () => setPage("packages");
 
   const onBookingConfirm = (data) => {
@@ -2705,7 +2704,7 @@ function CustomerPage({ page, setPage, mode, setMode, lang, setLang, currency, s
   return (
     <div className="min-h-screen bg-[#16151A]">
       {page === "home" && <ScrollProgressBar />}
-      <CustomerHeader page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} mode={mode} setMode={setMode} />
+      <CustomerHeader page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
 
       {page === "home" ? (
         <>
@@ -5002,7 +5001,13 @@ function AdminPage({ mode, setMode, lang, setLang, currency, setCurrency, conten
 /* ------------------------------------------------------------------ */
 
 function FamilySilverClassBaliApp() {
-  const [mode, setMode] = useState("customer");
+  const [mode, setMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("admin") === "1") return "admin";
+    }
+    return "customer";
+  });
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [page, setPage] = useState("home");
@@ -5091,7 +5096,7 @@ function FamilySilverClassBaliApp() {
     <div className="font-sans antialiased">
       <style>{GLOBAL_ANIMATION_CSS}</style>
       {mode === "customer" ? (
-        <CustomerPage page={page} setPage={setPage} mode={mode} setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} />
+        <CustomerPage page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} />
       ) : !authChecked ? (
         <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memeriksa sesi...</div>
       ) : !session ? (
