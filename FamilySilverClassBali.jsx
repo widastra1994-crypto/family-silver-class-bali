@@ -28,6 +28,50 @@ const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, 
 
 /* ===== SHARED BODY START (used verbatim by preview.html) ===== */
 
+/* ------------------------------------------------------------------ */
+/*  APP STATE SYNC — persist admin-edited CMS/Akunting data to          */
+/*  Supabase (table "app_state") so it survives refreshes/redeploys    */
+/*  and is shared with every visitor, not just the current browser.    */
+/* ------------------------------------------------------------------ */
+
+const APP_STATE_KEYS = [
+  "content", "catalog", "perGram", "extras", "settings", "galleryPhotos",
+  "reviews", "heroPhotos", "guestGalleryPhotos", "instructors", "asSeenIn",
+  "instagramPhotos", "accountingTransactions", "accountingOperational",
+  "accountingVendors", "accountingApps",
+];
+
+async function loadAppState() {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("app_state").select("key, value");
+  if (error || !data) return null;
+  const map = {};
+  data.forEach((row) => { map[row.key] = row.value; });
+  return map;
+}
+
+function useAppStateSync(key, value, ready) {
+  const skipRef = useRef(true);
+  useEffect(() => {
+    if (!ready || !supabase) return;
+    if (skipRef.current) { skipRef.current = false; return; }
+    const handle = setTimeout(() => {
+      supabase.from("app_state").upsert({ key, value, updated_at: new Date().toISOString() }).then(({ error }) => {
+        if (error) console.error("Gagal menyimpan " + key, error);
+      });
+    }, 600);
+    return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, value, ready]);
+}
+
+async function loadReservationsTable() {
+  if (!supabase) return null;
+  const { data, error } = await supabase.from("reservations").select("id, name, date, pax, status").order("created_at", { ascending: false });
+  if (error || !data) return null;
+  return data;
+}
+
 const initialHeroPhotos = [
   "FAMILY SILVER CLASS_0001_.jpg",
   "FAMILY SILVER CLASS_0002_0001_312321312.jpg",
@@ -2634,10 +2678,13 @@ function CustomerPage({ page, setPage, mode, setMode, lang, setLang, currency, s
   const goPackages = () => setPage("packages");
 
   const onBookingConfirm = (data) => {
-    setReservations((prev) => [
-      { id: "RSV-" + Date.now(), name: data.name, date: data.date, pax: data.pax, status: "Pending" },
-      ...prev,
-    ]);
+    const newReservation = { id: "RSV-" + Date.now(), name: data.name, date: data.date, pax: data.pax, status: "Pending" };
+    setReservations((prev) => [newReservation, ...prev]);
+    if (supabase) {
+      supabase.from("reservations").insert(newReservation).then(({ error }) => {
+        if (error) console.error("Gagal menyimpan reservasi", error);
+      });
+    }
   };
 
   return (
@@ -3346,8 +3393,24 @@ function ReviewsManager({ reviews, setReviews, settings, setSettings }) {
 /* ------------------------------------------------------------------ */
 
 function ReservationsManager({ reservations, setReservations }) {
-  const cycleStatus = (id) => setReservations(reservations.map((r) => (r.id === id ? { ...r, status: r.status === "Confirmed" ? "Pending" : "Confirmed" } : r)));
-  const removeReservation = (id) => setReservations(reservations.filter((r) => r.id !== id));
+  const cycleStatus = (id) => {
+    const target = reservations.find((r) => r.id === id);
+    const nextStatus = target && target.status === "Confirmed" ? "Pending" : "Confirmed";
+    setReservations(reservations.map((r) => (r.id === id ? { ...r, status: nextStatus } : r)));
+    if (supabase) {
+      supabase.from("reservations").update({ status: nextStatus }).eq("id", id).then(({ error }) => {
+        if (error) console.error("Gagal update status reservasi", error);
+      });
+    }
+  };
+  const removeReservation = (id) => {
+    setReservations(reservations.filter((r) => r.id !== id));
+    if (supabase) {
+      supabase.from("reservations").delete().eq("id", id).then(({ error }) => {
+        if (error) console.error("Gagal hapus reservasi", error);
+      });
+    }
+  };
 
   return (
     <div className="max-w-4xl">
@@ -4947,6 +5010,7 @@ export default function FamilySilverClassBaliApp() {
   const [accountingOperational, setAccountingOperational] = useState(initialAccountingOperational);
   const [accountingVendors, setAccountingVendors] = useState(initialAccountingVendors);
   const [accountingApps, setAccountingApps] = useState(initialAccountingApps);
+  const [stateReady, setStateReady] = useState(false);
 
   useEffect(() => {
     if (!supabase) { setAuthChecked(true); return; }
@@ -4959,6 +5023,54 @@ export default function FamilySilverClassBaliApp() {
     });
     return () => listener.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function init() {
+      if (!supabase) { setStateReady(true); return; }
+      const [map, rsv] = await Promise.all([loadAppState(), loadReservationsTable()]);
+      if (cancelled) return;
+      if (map) {
+        // Key yang belum pernah disimpan admin tetap memakai nilai default lokal
+        // di atas; begitu admin mengedit bagian itu, useAppStateSync akan menyimpannya.
+        const setters = {
+          content: setContent, catalog: setCatalog, perGram: setPerGram, extras: setExtras,
+          settings: setSettings, galleryPhotos: setGalleryPhotos, reviews: setReviews,
+          heroPhotos: setHeroPhotos, guestGalleryPhotos: setGuestGalleryPhotos,
+          instructors: setInstructors, asSeenIn: setAsSeenIn, instagramPhotos: setInstagramPhotos,
+          accountingTransactions: setAccountingTransactions, accountingOperational: setAccountingOperational,
+          accountingVendors: setAccountingVendors, accountingApps: setAccountingApps,
+        };
+        APP_STATE_KEYS.forEach((key) => {
+          if (Object.prototype.hasOwnProperty.call(map, key)) {
+            setters[key](map[key]);
+          }
+        });
+      }
+      if (rsv) setReservations(rsv);
+      setStateReady(true);
+    }
+    init();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useAppStateSync("content", content, stateReady);
+  useAppStateSync("catalog", catalog, stateReady);
+  useAppStateSync("perGram", perGram, stateReady);
+  useAppStateSync("extras", extras, stateReady);
+  useAppStateSync("settings", settings, stateReady);
+  useAppStateSync("galleryPhotos", galleryPhotos, stateReady);
+  useAppStateSync("reviews", reviews, stateReady);
+  useAppStateSync("heroPhotos", heroPhotos, stateReady);
+  useAppStateSync("guestGalleryPhotos", guestGalleryPhotos, stateReady);
+  useAppStateSync("instructors", instructors, stateReady);
+  useAppStateSync("asSeenIn", asSeenIn, stateReady);
+  useAppStateSync("instagramPhotos", instagramPhotos, stateReady);
+  useAppStateSync("accountingTransactions", accountingTransactions, stateReady);
+  useAppStateSync("accountingOperational", accountingOperational, stateReady);
+  useAppStateSync("accountingVendors", accountingVendors, stateReady);
+  useAppStateSync("accountingApps", accountingApps, stateReady);
 
   return (
     <div className="font-sans antialiased">
