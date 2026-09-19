@@ -1,0 +1,4890 @@
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Sparkles, Gem, Award, Users, MapPin, Star, X, Menu, LayoutDashboard,
+  MessageSquare, Calendar, TrendingUp, Check, Edit3, Send, Plus, Globe,
+  Code2, Eye, Clock, CheckCircle2, AlertTriangle, BarChart3,
+  FileText, Coins, Hammer, ShieldCheck, ChevronLeft, ChevronRight, Minus,
+  ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown,
+} from "lucide-react";
+
+/* ------------------------------------------------------------------ */
+/*  ASSETS — place the PHOTO/ folder and "logo website.png" inside     */
+/*  your project's public/ directory, then keep ASSET_BASE = "/".      */
+/* ------------------------------------------------------------------ */
+
+const ASSET_BASE = "/";
+const photo = (name) => encodeURI(ASSET_BASE + "PHOTO/" + name);
+const LOGO_SRC = encodeURI(ASSET_BASE + "logo website.png");
+
+const initialHeroPhotos = [
+  "FAMILY SILVER CLASS_0001_.jpg",
+  "FAMILY SILVER CLASS_0002_0001_312321312.jpg",
+  "FAMILY SILVER CLASS_0003.jpg",
+  "FAMILY SILVER CLASS_0007.jpg",
+];
+const initialGuestGalleryPhotos = [
+  "FAMILY SILVER CLASS_0002_0000_WhatsApp Image 2026-01-27 at 20.56.25.jpg",
+  "FAMILY SILVER CLASS_0002_0002_12312321.jpg",
+  "FAMILY SILVER CLASS_0009.jpg",
+  "FAMILY SILVER CLASS_0014.jpg",
+];
+const initialInstructors = [
+  { id: "team-1", name: "Made Wirawan", role: "Master Silversmith, 3rd Generation", photo: "FAMILY SILVER CLASS_0006.jpg" },
+  { id: "team-2", name: "Kadek Suartika", role: "Silversmith & Instructor", photo: "FAMILY SILVER CLASS_0010.jpg" },
+  { id: "team-3", name: "Wayan Sari", role: "Silversmith & Design Specialist", photo: "FAMILY SILVER CLASS_0011.jpg" },
+];
+const initialAsSeenIn = ["TripAdvisor Traveler's Choice", "Google 5.0 Rated", "Bali Tourism Board Listed"];
+const initialMapAddress = "Family Silver Class Bali, Jl. Padma Utara, Legian, Kuta, Bali";
+const initialInstagramPhotos = [
+  "FAMILY SILVER CLASS_0002_0003_312312312312.jpg",
+  "FAMILY SILVER CLASS_0004.jpg",
+  "FAMILY SILVER CLASS_0005.jpg",
+  "FAMILY SILVER CLASS_0012.jpg",
+  "FAMILY SILVER CLASS_0013.jpg",
+  "FAMILY SILVER CLASS_0010.jpg",
+];
+const initialGalleryPhotos = [
+  "FAMILY SILVER CLASS_0002.jpg",
+  "FAMILY SILVER CLASS_0003.jpg",
+  "FAMILY SILVER CLASS_0004.jpg",
+  "FAMILY SILVER CLASS_0005.jpg",
+  "FAMILY SILVER CLASS_0006.jpg",
+  "FAMILY SILVER CLASS_0007.jpg",
+  "FAMILY SILVER CLASS_0012.jpg",
+  "FAMILY SILVER CLASS_0013.jpg",
+];
+const PACKAGE_PHOTOS = {
+  ring: "FAMILY SILVER CLASS_0009.jpg",
+  pendant: "FAMILY SILVER CLASS_0010.jpg",
+  bangle: "FAMILY SILVER CLASS_0011.jpg",
+};
+const ALL_PHOTOS = [
+  "FAMILY SILVER CLASS_0001_.jpg",
+  "FAMILY SILVER CLASS_0002.jpg",
+  "FAMILY SILVER CLASS_0002_0000_WhatsApp Image 2026-01-27 at 20.56.25.jpg",
+  "FAMILY SILVER CLASS_0002_0001_312321312.jpg",
+  "FAMILY SILVER CLASS_0002_0002_12312321.jpg",
+  "FAMILY SILVER CLASS_0002_0003_312312312312.jpg",
+  "FAMILY SILVER CLASS_0003.jpg",
+  "FAMILY SILVER CLASS_0004.jpg",
+  "FAMILY SILVER CLASS_0005.jpg",
+  "FAMILY SILVER CLASS_0006.jpg",
+  "FAMILY SILVER CLASS_0007.jpg",
+  "FAMILY SILVER CLASS_0009.jpg",
+  "FAMILY SILVER CLASS_0010.jpg",
+  "FAMILY SILVER CLASS_0011.jpg",
+  "FAMILY SILVER CLASS_0012.jpg",
+  "FAMILY SILVER CLASS_0013.jpg",
+  "FAMILY SILVER CLASS_0014.jpg",
+];
+const DEFAULT_SLOTS = ["09:00", "11:00", "13:00", "15:00", "17:00"];
+
+/* ------------------------------------------------------------------ */
+/*  LANGUAGES & CURRENCIES                                             */
+/* ------------------------------------------------------------------ */
+
+const LANGUAGES = [
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "id", label: "Bahasa Indonesia", flag: "🇮🇩" },
+  { code: "zh", label: "中文", flag: "🇨🇳" },
+  { code: "ja", label: "日本語", flag: "🇯🇵" },
+  { code: "ko", label: "한국어", flag: "🇰🇷" },
+  { code: "ru", label: "Русский", flag: "🇷🇺" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+  { code: "nl", label: "Nederlands", flag: "🇳🇱" },
+];
+
+const CURRENCIES = [
+  { code: "USD", symbol: "$", rate: 1 / 15850, locale: "en-US", decimals: 2 },
+  { code: "IDR", symbol: "Rp", rate: 1, locale: "id-ID", decimals: 0 },
+  { code: "AUD", symbol: "A$", rate: 1.52 / 15850, locale: "en-AU", decimals: 2 },
+  { code: "EUR", symbol: "€", rate: 0.92 / 15850, locale: "de-DE", decimals: 2 },
+  { code: "GBP", symbol: "£", rate: 0.78 / 15850, locale: "en-GB", decimals: 2 },
+  { code: "JPY", symbol: "¥", rate: 149 / 15850, locale: "ja-JP", decimals: 0 },
+  { code: "SGD", symbol: "S$", rate: 1.34 / 15850, locale: "en-SG", decimals: 2 },
+  { code: "CNY", symbol: "¥", rate: 7.24 / 15850, locale: "zh-CN", decimals: 2 },
+  { code: "KRW", symbol: "₩", rate: 1370 / 15850, locale: "ko-KR", decimals: 0 },
+  { code: "RUB", symbol: "₽", rate: 92 / 15850, locale: "ru-RU", decimals: 0 },
+];
+
+function formatPrice(idr, code) {
+  const c = CURRENCIES.find((x) => x.code === code) || CURRENCIES[0];
+  const value = idr * c.rate;
+  const num = value.toLocaleString(c.locale, {
+    minimumFractionDigits: c.decimals,
+    maximumFractionDigits: c.decimals,
+  });
+  return c.symbol + " " + num;
+}
+
+/* ------------------------------------------------------------------ */
+/*  TRANSLATIONS                                                       */
+/* ------------------------------------------------------------------ */
+
+const TRANSLATIONS = {
+  en: {
+    nav_packages: "Packages", nav_reviews: "Reviews", nav_location: "Location", nav_home: "Home",
+    location_tag: "LEGIAN, BALI — AUTHENTIC SILVERSMITH STUDIO",
+    hero_headline: "Forge Your Own Genuine 925 Silver Jewelry, in the Heart of Legian",
+    hero_subheadline: "Sit alongside third-generation local silversmiths and take home a handmade ring, pendant, or bangle — in one relaxed 2-hour session.",
+    promo_text: "🎉 September Promo: Free hotel pickup around Legian & Seminyak for bookings of 2 or more.",
+    cta_book: "Book Your Class", cta_explore: "Explore Packages",
+    badge_silver: "Includes 5–7g Pure Silver 925", badge_cert: "Certificate of Completion", badge_beginner: "Beginner Friendly",
+    gallery_title: "Moments from Our Studio", gallery_subtitle: "A real look inside our silver jewelry making class in Legian, Bali.",
+    calc_label: "Interactive Calculator", calc_title: "Build Your Package",
+    calc_subtitle: "Choose a jewelry type, participant count, and extra silver grams — price updates instantly.",
+    jewelry_type_label: "Jewelry Type", jewelry_ring: "Ring", jewelry_pendant: "Pendant", jewelry_bangle: "Bangle",
+    participants_label: "Number of Participants", participants_suffix: "people (max. 10)",
+    extra_grams_label: "Extra Silver Grams / Person",
+    includes_base: "Includes a base of {grams}g pure silver per person for the {type}.",
+    total_label: "Estimated Total", base_price_label: "Base price / person", extra_price_label: "Extra",
+    participants_row_label: "Participants", total_grams_label: "Total silver used", book_now: "Book Now",
+    visit_us_label: "Visit Us", visit_us_title: "Legian, Bali — Find & Trust Us",
+    verified_reviews: "{count}+ verified Google reviews", open_maps: "Open Maps",
+    packages_eyebrow: "Our Packages", packages_title: "Choose Your Jewelry Package",
+    packages_subtitle: "Every package includes genuine 925 silver, hands-on guidance from our artisans, and a certificate of completion.",
+    select_customize: "Select & Customize", whats_included: "What's Included",
+    footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Prototype build — not for production use",
+    language_label: "Language", currency_label: "Currency",
+    booking_modal_title: "Complete Your Booking", form_name: "Full Name", form_email: "Email Address",
+    form_whatsapp: "Active WhatsApp Number", form_date: "Preferred Date", form_slot: "Preferred Time Slot",
+    form_slot_placeholder: "Select a time slot", form_submit: "Send Booking via WhatsApp",
+    form_required: "Please fill in all fields before continuing.",
+    booking_success: "Booking request sent! We'll confirm shortly via WhatsApp.",
+    view_details: "View Details", pkg_excludes_title: "Not Included", pkg_directions_title: "How to Get There",
+    extras_label: "Optional Extras", meeting_label: "Meeting Option", meeting_studio: "Meet at Studio",
+    meeting_pickup: "Hotel Pickup", pickup_area_label: "Pickup Area", pickup_area_placeholder: "Select your area",
+    extras_price_label: "Extras", pickup_note_label: "Pickup Location (Maps link or Hotel name)",
+    pickup_note_placeholder: "e.g. Hotel name or Google Maps link", pickup_fee_label: "Pickup Fee",
+    about_eyebrow: "Our Story", about_title: "A Family Craft, Passed Down",
+    team_eyebrow: "Meet The Makers", team_title: "Our Master Silversmiths",
+    team_subtitle: "The hands and hearts behind every piece you'll make.",
+    whyus_eyebrow: "Why Choose Us", whyus_title: "What Makes Us Different",
+    whyus_subtitle: "Not just a souvenir — a genuine craft experience.",
+    steps_eyebrow: "Silver Learning Stage", steps_title: "Step by Step in Making Silver",
+    steps_subtitle: "Everything you'll experience, from raw silver to finished jewelry.",
+    guestgallery_title: "Made By Our Guests", guestgallery_subtitle: "Real pieces, real pride — straight from the workbench to their hands.",
+    faq_eyebrow: "Good To Know", faq_title: "Frequently Asked Questions",
+    faq_subtitle: "Everything you need to know before you book.",
+    asseenin_label: "Trusted & Recognized",
+    stats_eyebrow: "By The Numbers", stats_title: "Our Journey So Far",
+    beforeafter_eyebrow: "See The Transformation", beforeafter_title: "From Raw Silver to Finished Jewelry",
+    beforeafter_subtitle: "Drag the slider to see the craft in action.", label_before: "Before", label_after: "After",
+    countdown_label: "This Offer Ends In", countdown_days: "Days", countdown_hours: "Hours",
+    countdown_minutes: "Minutes", countdown_seconds: "Seconds",
+    instagram_eyebrow: "Follow Along", instagram_title: "More Moments on Instagram",
+    instagram_subtitle: "Behind-the-scenes and fresh creations, posted daily.", instagram_follow: "Follow {handle}",
+  },
+  id: {
+    nav_packages: "Paket", nav_reviews: "Ulasan", nav_location: "Lokasi", nav_home: "Beranda",
+    location_tag: "LEGIAN, BALI — STUDIO PERAK AUTENTIK",
+    hero_headline: "Tempa Perhiasan Perak 925 Asli Anda Sendiri, di Jantung Legian",
+    hero_subheadline: "Duduk bersama pengrajin perak lokal generasi ketiga dan bawa pulang cincin, pendant, atau gelang perak murni buatan tangan Anda sendiri — dalam satu sesi santai berdurasi 2 jam.",
+    promo_text: "🎉 Promo September: Gratis penjemputan hotel area Legian & Seminyak untuk booking 2 peserta atau lebih.",
+    cta_book: "Pesan Kelas Anda", cta_explore: "Lihat Paket",
+    badge_silver: "Termasuk Perak Murni 5–7g", badge_cert: "Sertifikat Kelulusan", badge_beginner: "Ramah Pemula",
+    gallery_title: "Momen di Studio Kami", gallery_subtitle: "Suasana asli kelas pembuatan perhiasan perak di Legian, Bali.",
+    calc_label: "Kalkulator Interaktif", calc_title: "Susun Paket Anda",
+    calc_subtitle: "Pilih jenis perhiasan, jumlah peserta, dan tambahan gram perak — harga terupdate otomatis.",
+    jewelry_type_label: "Jenis Perhiasan", jewelry_ring: "Cincin", jewelry_pendant: "Pendant / Liontin", jewelry_bangle: "Gelang",
+    participants_label: "Jumlah Peserta", participants_suffix: "orang (maks. 10)",
+    extra_grams_label: "Tambahan Gram Perak / Orang",
+    includes_base: "Termasuk dasar {grams}g perak murni per orang untuk {type}.",
+    total_label: "Estimasi Total", base_price_label: "Harga dasar / orang", extra_price_label: "Tambahan",
+    participants_row_label: "Jumlah peserta", total_grams_label: "Total perak dipakai", book_now: "Pesan Sekarang",
+    visit_us_label: "Kunjungi Kami", visit_us_title: "Legian, Bali — Temukan & Percayai Kami",
+    verified_reviews: "{count}+ ulasan Google terverifikasi", open_maps: "Buka Maps",
+    packages_eyebrow: "Pilihan Paket", packages_title: "Pilih Paket Perhiasan Anda",
+    packages_subtitle: "Setiap paket termasuk bahan perak 925 asli, bimbingan pengrajin, dan sertifikat kelulusan.",
+    select_customize: "Pilih & Sesuaikan", whats_included: "Yang Anda Dapatkan",
+    footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Build prototipe — bukan untuk produksi",
+    language_label: "Bahasa", currency_label: "Mata Uang",
+    booking_modal_title: "Lengkapi Pemesanan Anda", form_name: "Nama Lengkap", form_email: "Alamat Email",
+    form_whatsapp: "Nomor WhatsApp Aktif", form_date: "Tanggal Pilihan", form_slot: "Slot Waktu Pilihan",
+    form_slot_placeholder: "Pilih slot waktu", form_submit: "Kirim Pemesanan via WhatsApp",
+    form_required: "Mohon lengkapi semua kolom sebelum melanjutkan.",
+    booking_success: "Permintaan booking terkirim! Kami akan konfirmasi lewat WhatsApp.",
+    view_details: "Lihat Detail", pkg_excludes_title: "Tidak Termasuk", pkg_directions_title: "Cara Menuju Lokasi",
+    extras_label: "Tambahan Opsional", meeting_label: "Opsi Bertemu", meeting_studio: "Bertemu di Lokasi",
+    meeting_pickup: "Penjemputan Hotel", pickup_area_label: "Area Penjemputan", pickup_area_placeholder: "Pilih area Anda",
+    extras_price_label: "Tambahan", pickup_note_label: "Lokasi Penjemputan (Link Maps atau Nama Hotel)",
+    pickup_note_placeholder: "contoh: Nama hotel atau link Google Maps", pickup_fee_label: "Biaya Penjemputan",
+    about_eyebrow: "Kisah Kami", about_title: "Kerajinan Keluarga, Diwariskan Turun-Temurun",
+    team_eyebrow: "Kenali Para Pengrajin", team_title: "Master Pengrajin Perak Kami",
+    team_subtitle: "Tangan dan hati di balik setiap karya yang akan Anda buat.",
+    whyus_eyebrow: "Kenapa Pilih Kami", whyus_title: "Yang Membuat Kami Berbeda",
+    whyus_subtitle: "Bukan sekadar oleh-oleh — pengalaman kerajinan yang sesungguhnya.",
+    steps_eyebrow: "Tahapan Belajar Perak", steps_title: "Langkah demi Langkah Membuat Perak",
+    steps_subtitle: "Semua yang akan Anda alami, dari perak mentah hingga perhiasan jadi.",
+    guestgallery_title: "Karya Buatan Tamu Kami", guestgallery_subtitle: "Karya asli, kebanggaan asli — langsung dari meja kerja ke tangan mereka.",
+    faq_eyebrow: "Perlu Diketahui", faq_title: "Pertanyaan yang Sering Diajukan",
+    faq_subtitle: "Semua yang perlu Anda tahu sebelum memesan.",
+    asseenin_label: "Dipercaya & Diakui",
+    stats_eyebrow: "Dalam Angka", stats_title: "Perjalanan Kami Sejauh Ini",
+    beforeafter_eyebrow: "Lihat Transformasinya", beforeafter_title: "Dari Perak Mentah Menjadi Perhiasan Jadi",
+    beforeafter_subtitle: "Geser slider untuk melihat prosesnya.", label_before: "Sebelum", label_after: "Sesudah",
+    countdown_label: "Promo Berakhir Dalam", countdown_days: "Hari", countdown_hours: "Jam",
+    countdown_minutes: "Menit", countdown_seconds: "Detik",
+    instagram_eyebrow: "Ikuti Kami", instagram_title: "Momen Lainnya di Instagram",
+    instagram_subtitle: "Cuplikan di balik layar dan karya terbaru, diunggah setiap hari.", instagram_follow: "Follow {handle}",
+  },
+  zh: {
+    nav_packages: "套餐", nav_reviews: "评价", nav_location: "位置", nav_home: "首页",
+    location_tag: "巴厘岛雷吉安 — 正宗银匠工作室",
+    hero_headline: "在雷吉安中心,亲手打造属于您的正宗925银饰",
+    hero_subheadline: "与三代传承的本地银匠一起,在轻松的2小时课程中亲手制作戒指、吊坠或手镯,并将其带回家。",
+    promo_text: "🎉 九月优惠:2人以上预订可享雷吉安及水明漾地区免费酒店接送。",
+    cta_book: "预订课程", cta_explore: "查看套餐",
+    badge_silver: "含5-7克纯银925", badge_cert: "结业证书", badge_beginner: "适合初学者",
+    gallery_title: "工作室瞬间", gallery_subtitle: "巴厘岛雷吉安银饰制作课程的真实场景。",
+    calc_label: "互动计算器", calc_title: "定制您的套餐",
+    calc_subtitle: "选择首饰类型、参与人数和额外银克数 — 价格即时更新。",
+    jewelry_type_label: "首饰类型", jewelry_ring: "戒指", jewelry_pendant: "吊坠", jewelry_bangle: "手镯",
+    participants_label: "参与人数", participants_suffix: "人(最多10人)",
+    extra_grams_label: "每人额外银克数",
+    includes_base: "每人含{type}基础纯银{grams}克。",
+    total_label: "预估总价", base_price_label: "每人基础价格", extra_price_label: "额外费用",
+    participants_row_label: "参与人数", total_grams_label: "总用银量", book_now: "立即预订",
+    visit_us_label: "欢迎光临", visit_us_title: "巴厘岛雷吉安 — 找到并信赖我们",
+    verified_reviews: "{count}+ 条谷歌认证评价", open_maps: "打开地图",
+    packages_eyebrow: "我们的套餐", packages_title: "选择您的首饰套餐",
+    packages_subtitle: "每个套餐均含正宗925银材料、工匠现场指导及结业证书。",
+    select_customize: "选择并定制", whats_included: "套餐包含",
+    footer_rights: "Family Silver Class Bali · 巴厘岛库塔雷吉安", footer_prototype: "原型版本 — 非生产用途",
+    language_label: "语言", currency_label: "货币",
+    booking_modal_title: "完成您的预订", form_name: "姓名", form_email: "电子邮箱",
+    form_whatsapp: "有效的WhatsApp号码", form_date: "预约日期", form_slot: "预约时段",
+    form_slot_placeholder: "选择时段", form_submit: "通过WhatsApp发送预订",
+    form_required: "请填写所有字段后再继续。",
+    booking_success: "预订请求已发送！我们将通过WhatsApp尽快确认。",
+    view_details: "查看详情", pkg_excludes_title: "不包含项目", pkg_directions_title: "如何抵达",
+    extras_label: "可选附加项目", meeting_label: "见面方式", meeting_studio: "在工作室见面",
+    meeting_pickup: "酒店接送", pickup_area_label: "接送区域", pickup_area_placeholder: "选择您的区域",
+    extras_price_label: "附加项目", pickup_note_label: "接送地点(地图链接或酒店名称)",
+    pickup_note_placeholder: "例如:酒店名称或谷歌地图链接", pickup_fee_label: "接送费用",
+    about_eyebrow: "我们的故事", about_title: "代代相传的家族工艺",
+    team_eyebrow: "认识匠人", team_title: "我们的银匠大师",
+    team_subtitle: "每一件作品背后的双手与用心。",
+    whyus_eyebrow: "为何选择我们", whyus_title: "我们的与众不同之处",
+    whyus_subtitle: "不只是纪念品——而是真正的工艺体验。",
+    steps_eyebrow: "银艺学习阶段", steps_title: "制作银饰的步骤",
+    steps_subtitle: "从原始银料到成品首饰,您将体验的一切。",
+    guestgallery_title: "客人亲手制作", guestgallery_subtitle: "真实作品,真实自豪——从工作台直接到他们手中。",
+    faq_eyebrow: "须知事项", faq_title: "常见问题",
+    faq_subtitle: "预订前您需要了解的一切。",
+    asseenin_label: "备受信赖与认可",
+  },
+  ja: {
+    nav_packages: "パッケージ", nav_reviews: "レビュー", nav_location: "場所", nav_home: "ホーム",
+    location_tag: "バリ島レギャン — 本格銀細工スタジオ",
+    hero_headline: "レギャンの中心で、本物の925シルバージュエリーを自分の手で",
+    hero_subheadline: "三代続く地元の銀細工職人とともに、リラックスした2時間のセッションで指輪・ペンダント・バングルを手作りしてお持ち帰りいただけます。",
+    promo_text: "🎉 9月キャンペーン:2名様以上のご予約でレギャン・スミニャック周辺ホテル送迎無料。",
+    cta_book: "クラスを予約する", cta_explore: "パッケージを見る",
+    badge_silver: "純銀925 5〜7g込み", badge_cert: "修了証明書", badge_beginner: "初心者歓迎",
+    gallery_title: "スタジオの様子", gallery_subtitle: "バリ島レギャンのシルバージュエリー制作クラスの実際の風景。",
+    calc_label: "インタラクティブ計算機", calc_title: "パッケージを組み立てる",
+    calc_subtitle: "ジュエリーの種類、参加人数、追加のシルバーグラム数を選択すると料金が即時更新されます。",
+    jewelry_type_label: "ジュエリーの種類", jewelry_ring: "指輪", jewelry_pendant: "ペンダント", jewelry_bangle: "バングル",
+    participants_label: "参加人数", participants_suffix: "名(最大10名)",
+    extra_grams_label: "追加シルバー(1人あたりのグラム数)",
+    includes_base: "{type}には1人あたり基本{grams}gの純銀が含まれます。",
+    total_label: "合計見積もり", base_price_label: "基本料金(1人あたり)", extra_price_label: "追加料金",
+    participants_row_label: "参加人数", total_grams_label: "使用する銀の合計量", book_now: "今すぐ予約",
+    visit_us_label: "アクセス", visit_us_title: "バリ島レギャン — 私たちを見つけて、信頼してください",
+    verified_reviews: "{count}件以上のGoogle認証レビュー", open_maps: "マップを開く",
+    packages_eyebrow: "パッケージ一覧", packages_title: "ジュエリーパッケージを選ぶ",
+    packages_subtitle: "すべてのパッケージには本物の925シルバー、職人による直接指導、修了証明書が含まれます。",
+    select_customize: "選択してカスタマイズ", whats_included: "含まれる内容",
+    footer_rights: "Family Silver Class Bali · バリ島クタ・レギャン", footer_prototype: "プロトタイプビルド — 本番利用不可",
+    language_label: "言語", currency_label: "通貨",
+    booking_modal_title: "予約を完了する", form_name: "お名前", form_email: "メールアドレス",
+    form_whatsapp: "有効なWhatsApp番号", form_date: "希望日", form_slot: "希望時間帯",
+    form_slot_placeholder: "時間帯を選択", form_submit: "WhatsAppで予約を送信",
+    form_required: "続行する前にすべての項目を入力してください。",
+    booking_success: "予約リクエストを送信しました！WhatsAppですぐにご連絡します。",
+    view_details: "詳細を見る", pkg_excludes_title: "含まれないもの", pkg_directions_title: "アクセス方法",
+    extras_label: "オプション追加", meeting_label: "集合方法", meeting_studio: "スタジオで待ち合わせ",
+    meeting_pickup: "ホテル送迎", pickup_area_label: "送迎エリア", pickup_area_placeholder: "エリアを選択",
+    extras_price_label: "追加オプション", pickup_note_label: "送迎場所(地図リンクまたはホテル名)",
+    pickup_note_placeholder: "例:ホテル名またはGoogleマップのリンク", pickup_fee_label: "送迎料金",
+    about_eyebrow: "私たちの物語", about_title: "代々受け継がれる家族の技",
+    team_eyebrow: "職人紹介", team_title: "私たちのマスター銀細工職人",
+    team_subtitle: "あなたが作る一つ一つの作品を支える手と心。",
+    whyus_eyebrow: "選ばれる理由", whyus_title: "私たちならではの違い",
+    whyus_subtitle: "単なるお土産ではなく、本物の工芸体験を。",
+    steps_eyebrow: "銀細工学習ステージ", steps_title: "銀細工作りのステップ",
+    steps_subtitle: "原料の銀から完成品まで、体験するすべての工程。",
+    guestgallery_title: "ゲストの作品", guestgallery_subtitle: "本物の作品、本物の誇り——作業台からそのまま手元へ。",
+    faq_eyebrow: "知っておきたいこと", faq_title: "よくある質問",
+    faq_subtitle: "ご予約前に知っておきたいすべてのこと。",
+    asseenin_label: "信頼と評価",
+  },
+  ko: {
+    nav_packages: "패키지", nav_reviews: "리뷰", nav_location: "위치", nav_home: "홈",
+    location_tag: "발리 레기안 — 정통 은세공 스튜디오",
+    hero_headline: "레기안 중심에서 나만의 진짜 925 실버 주얼리를 직접 만들어보세요",
+    hero_subheadline: "3대째 이어온 현지 은세공 장인과 함께, 여유로운 2시간 세션 동안 반지, 펜던트 또는 뱅글을 직접 만들어 집으로 가져가세요.",
+    promo_text: "🎉 9월 프로모션: 2인 이상 예약 시 레기안 & 스미냑 지역 무료 호텔 픽업.",
+    cta_book: "클래스 예약하기", cta_explore: "패키지 보기",
+    badge_silver: "순은 925 5–7g 포함", badge_cert: "수료증 제공", badge_beginner: "초보자 환영",
+    gallery_title: "스튜디오의 순간들", gallery_subtitle: "발리 레기안 실버 주얼리 클래스의 실제 모습입니다.",
+    calc_label: "인터랙티브 계산기", calc_title: "나만의 패키지 만들기",
+    calc_subtitle: "주얼리 종류, 참가 인원, 추가 은 그램을 선택하면 가격이 즉시 업데이트됩니다.",
+    jewelry_type_label: "주얼리 종류", jewelry_ring: "반지", jewelry_pendant: "펜던트", jewelry_bangle: "뱅글",
+    participants_label: "참가 인원", participants_suffix: "명 (최대 10명)",
+    extra_grams_label: "1인당 추가 은 그램",
+    includes_base: "{type} 1인당 기본 순은 {grams}g이 포함됩니다.",
+    total_label: "예상 총액", base_price_label: "1인당 기본 가격", extra_price_label: "추가 요금",
+    participants_row_label: "참가 인원", total_grams_label: "총 사용된 은", book_now: "지금 예약하기",
+    visit_us_label: "오시는 길", visit_us_title: "발리 레기안 — 저희를 찾아 신뢰해 보세요",
+    verified_reviews: "{count}개 이상의 인증된 구글 리뷰", open_maps: "지도 열기",
+    packages_eyebrow: "패키지 안내", packages_title: "주얼리 패키지를 선택하세요",
+    packages_subtitle: "모든 패키지에는 정품 925 실버, 장인의 직접 지도, 수료증이 포함됩니다.",
+    select_customize: "선택 및 맞춤 설정", whats_included: "포함 사항",
+    footer_rights: "Family Silver Class Bali · 발리 쿠타 레기안", footer_prototype: "프로토타입 빌드 — 실제 서비스 아님",
+    language_label: "언어", currency_label: "통화",
+    booking_modal_title: "예약을 완료하세요", form_name: "성함", form_email: "이메일 주소",
+    form_whatsapp: "사용 중인 WhatsApp 번호", form_date: "희망 날짜", form_slot: "희망 시간대",
+    form_slot_placeholder: "시간대를 선택하세요", form_submit: "WhatsApp으로 예약 보내기",
+    form_required: "계속하려면 모든 항목을 입력해 주세요.",
+    booking_success: "예약 요청이 전송되었습니다! WhatsApp으로 곧 확인해 드리겠습니다.",
+    view_details: "자세히 보기", pkg_excludes_title: "포함되지 않음", pkg_directions_title: "오시는 방법",
+    extras_label: "선택 추가 옵션", meeting_label: "미팅 방식", meeting_studio: "스튜디오에서 만남",
+    meeting_pickup: "호텔 픽업", pickup_area_label: "픽업 지역", pickup_area_placeholder: "지역을 선택하세요",
+    extras_price_label: "추가 옵션", pickup_note_label: "픽업 위치 (지도 링크 또는 호텔명)",
+    pickup_note_placeholder: "예: 호텔명 또는 구글 맵 링크", pickup_fee_label: "픽업 요금",
+    about_eyebrow: "우리의 이야기", about_title: "대대로 이어지는 가족의 공예",
+    team_eyebrow: "장인 소개", team_title: "저희의 마스터 은세공 장인",
+    team_subtitle: "당신이 만들 모든 작품 뒤에 있는 손길과 마음.",
+    whyus_eyebrow: "선택 이유", whyus_title: "저희만의 차별점",
+    whyus_subtitle: "단순한 기념품이 아닌, 진정한 공예 경험.",
+    steps_eyebrow: "은세공 학습 단계", steps_title: "은 세공 만들기 단계",
+    steps_subtitle: "원재료 은부터 완성품까지, 당신이 경험할 모든 과정.",
+    guestgallery_title: "손님들이 만든 작품", guestgallery_subtitle: "진짜 작품, 진짜 자부심 — 작업대에서 바로 손으로.",
+    faq_eyebrow: "알아두면 좋은 정보", faq_title: "자주 묻는 질문",
+    faq_subtitle: "예약 전에 알아야 할 모든 것.",
+    asseenin_label: "신뢰와 인정",
+  },
+  ru: {
+    nav_packages: "Пакеты", nav_reviews: "Отзывы", nav_location: "Локация", nav_home: "Главная",
+    location_tag: "ЛЕГИАН, БАЛИ — АУТЕНТИЧНАЯ СТУДИЯ СЕРЕБРА",
+    hero_headline: "Создайте собственное украшение из настоящего серебра 925 пробы в самом сердце Легиана",
+    hero_subheadline: "Присоединяйтесь к местным мастерам серебряных дел в третьем поколении и заберите домой кольцо, кулон или браслет, сделанные своими руками — всего за один спокойный 2-часовой урок.",
+    promo_text: "🎉 Акция сентября: бесплатный трансфер из отелей в районе Легиан и Семиньяк при бронировании от 2 человек.",
+    cta_book: "Забронировать урок", cta_explore: "Смотреть пакеты",
+    badge_silver: "Включено 5–7г чистого серебра 925", badge_cert: "Сертификат об окончании", badge_beginner: "Подходит новичкам",
+    gallery_title: "Моменты из нашей студии", gallery_subtitle: "Реальные кадры мастер-класса по изготовлению серебряных украшений в Легиане, Бали.",
+    calc_label: "Интерактивный калькулятор", calc_title: "Соберите свой пакет",
+    calc_subtitle: "Выберите тип украшения, количество участников и дополнительные граммы серебра — цена обновляется мгновенно.",
+    jewelry_type_label: "Тип украшения", jewelry_ring: "Кольцо", jewelry_pendant: "Кулон", jewelry_bangle: "Браслет",
+    participants_label: "Количество участников", participants_suffix: "человек (макс. 10)",
+    extra_grams_label: "Доп. граммы серебра на человека",
+    includes_base: "Включает базовые {grams}г чистого серебра на человека для {type}.",
+    total_label: "Примерная стоимость", base_price_label: "Базовая цена / человек", extra_price_label: "Доплата",
+    participants_row_label: "Участники", total_grams_label: "Всего использовано серебра", book_now: "Забронировать сейчас",
+    visit_us_label: "Приходите к нам", visit_us_title: "Легиан, Бали — найдите и доверьтесь нам",
+    verified_reviews: "{count}+ проверенных отзывов Google", open_maps: "Открыть карту",
+    packages_eyebrow: "Наши пакеты", packages_title: "Выберите пакет украшений",
+    packages_subtitle: "Каждый пакет включает настоящее серебро 925 пробы, помощь мастера и сертификат об окончании.",
+    select_customize: "Выбрать и настроить", whats_included: "Что входит",
+    footer_rights: "Family Silver Class Bali · Легиан, Кута, Бали", footer_prototype: "Прототип — не для промышленного использования",
+    language_label: "Язык", currency_label: "Валюта",
+    booking_modal_title: "Завершите бронирование", form_name: "Полное имя", form_email: "Адрес электронной почты",
+    form_whatsapp: "Активный номер WhatsApp", form_date: "Желаемая дата", form_slot: "Желаемое время",
+    form_slot_placeholder: "Выберите время", form_submit: "Отправить бронирование через WhatsApp",
+    form_required: "Пожалуйста, заполните все поля перед продолжением.",
+    booking_success: "Запрос на бронирование отправлен! Мы подтвердим через WhatsApp.",
+    view_details: "Подробнее", pkg_excludes_title: "Не включено", pkg_directions_title: "Как добраться",
+    extras_label: "Дополнительные опции", meeting_label: "Способ встречи", meeting_studio: "Встреча в студии",
+    meeting_pickup: "Трансфер из отеля", pickup_area_label: "Зона трансфера", pickup_area_placeholder: "Выберите ваш район",
+    extras_price_label: "Доп. опции", pickup_note_label: "Место встречи (ссылка на карту или название отеля)",
+    pickup_note_placeholder: "например: название отеля или ссылка Google Maps", pickup_fee_label: "Плата за трансфер",
+    about_eyebrow: "Наша история", about_title: "Семейное ремесло из поколения в поколение",
+    team_eyebrow: "Наши мастера", team_title: "Наши мастера-серебряники",
+    team_subtitle: "Руки и сердца за каждым изделием, которое вы создадите.",
+    whyus_eyebrow: "Почему мы", whyus_title: "Что делает нас особенными",
+    whyus_subtitle: "Не просто сувенир — настоящий ремесленный опыт.",
+    steps_eyebrow: "Этап обучения серебру", steps_title: "Шаги изготовления серебра",
+    steps_subtitle: "Всё, что вы испытаете — от сырого серебра до готового украшения.",
+    guestgallery_title: "Работы наших гостей", guestgallery_subtitle: "Настоящие изделия, настоящая гордость — прямо с рабочего стола в руки.",
+    faq_eyebrow: "Полезно знать", faq_title: "Часто задаваемые вопросы",
+    faq_subtitle: "Всё, что нужно знать перед бронированием.",
+    asseenin_label: "Признано и проверено",
+  },
+  fr: {
+    nav_packages: "Forfaits", nav_reviews: "Avis", nav_location: "Emplacement", nav_home: "Accueil",
+    location_tag: "LEGIAN, BALI — ATELIER D'ORFÈVRERIE AUTHENTIQUE",
+    hero_headline: "Forgez votre propre bijou en argent 925 authentique, au cœur de Legian",
+    hero_subheadline: "Asseyez-vous aux côtés d'orfèvres locaux de troisième génération et repartez avec une bague, un pendentif ou un bracelet fait main — en une seule séance relaxante de 2 heures.",
+    promo_text: "🎉 Promo de septembre : transfert hôtelier gratuit dans les environs de Legian et Seminyak pour toute réservation de 2 personnes ou plus.",
+    cta_book: "Réserver votre cours", cta_explore: "Découvrir les forfaits",
+    badge_silver: "Inclut 5–7g d'argent pur 925", badge_cert: "Certificat de fin de cours", badge_beginner: "Idéal pour débutants",
+    gallery_title: "Moments de notre atelier", gallery_subtitle: "Un vrai aperçu de notre cours de bijouterie en argent à Legian, Bali.",
+    calc_label: "Calculateur interactif", calc_title: "Composez votre forfait",
+    calc_subtitle: "Choisissez un type de bijou, le nombre de participants et des grammes d'argent supplémentaires — le prix se met à jour instantanément.",
+    jewelry_type_label: "Type de bijou", jewelry_ring: "Bague", jewelry_pendant: "Pendentif", jewelry_bangle: "Bracelet",
+    participants_label: "Nombre de participants", participants_suffix: "personnes (max. 10)",
+    extra_grams_label: "Grammes d'argent supplémentaires / personne",
+    includes_base: "Comprend une base de {grams}g d'argent pur par personne pour {type}.",
+    total_label: "Total estimé", base_price_label: "Prix de base / personne", extra_price_label: "Supplément",
+    participants_row_label: "Participants", total_grams_label: "Total d'argent utilisé", book_now: "Réserver maintenant",
+    visit_us_label: "Venez nous voir", visit_us_title: "Legian, Bali — Trouvez-nous et faites-nous confiance",
+    verified_reviews: "{count}+ avis Google vérifiés", open_maps: "Ouvrir la carte",
+    packages_eyebrow: "Nos forfaits", packages_title: "Choisissez votre forfait bijoux",
+    packages_subtitle: "Chaque forfait comprend de l'argent 925 authentique, l'accompagnement de nos artisans et un certificat de fin de cours.",
+    select_customize: "Sélectionner et personnaliser", whats_included: "Ce qui est inclus",
+    footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Version prototype — non destinée à la production",
+    language_label: "Langue", currency_label: "Devise",
+    booking_modal_title: "Finalisez votre réservation", form_name: "Nom complet", form_email: "Adresse e-mail",
+    form_whatsapp: "Numéro WhatsApp actif", form_date: "Date souhaitée", form_slot: "Créneau horaire souhaité",
+    form_slot_placeholder: "Choisissez un créneau", form_submit: "Envoyer la réservation via WhatsApp",
+    form_required: "Veuillez remplir tous les champs avant de continuer.",
+    booking_success: "Demande de réservation envoyée ! Nous confirmerons bientôt via WhatsApp.",
+    view_details: "Voir les détails", pkg_excludes_title: "Non inclus", pkg_directions_title: "Comment nous trouver",
+    extras_label: "Options supplémentaires", meeting_label: "Mode de rendez-vous", meeting_studio: "Rendez-vous à l'atelier",
+    meeting_pickup: "Navette depuis l'hôtel", pickup_area_label: "Zone de prise en charge", pickup_area_placeholder: "Choisissez votre zone",
+    extras_price_label: "Options", pickup_note_label: "Lieu de prise en charge (lien Maps ou nom de l'hôtel)",
+    pickup_note_placeholder: "ex. nom de l'hôtel ou lien Google Maps", pickup_fee_label: "Frais de prise en charge",
+    about_eyebrow: "Notre histoire", about_title: "Un artisanat familial transmis de génération en génération",
+    team_eyebrow: "Rencontrez nos artisans", team_title: "Nos maîtres orfèvres",
+    team_subtitle: "Les mains et les cœurs derrière chaque pièce que vous créerez.",
+    whyus_eyebrow: "Pourquoi nous choisir", whyus_title: "Ce qui nous distingue",
+    whyus_subtitle: "Pas seulement un souvenir — une véritable expérience artisanale.",
+    steps_eyebrow: "Étape d'apprentissage de l'argent", steps_title: "Les étapes de fabrication de l'argent",
+    steps_subtitle: "Tout ce que vous vivrez, de l'argent brut au bijou fini.",
+    guestgallery_title: "Réalisé par nos invités", guestgallery_subtitle: "De vraies pièces, une vraie fierté — directement de l'établi à leurs mains.",
+    faq_eyebrow: "Bon à savoir", faq_title: "Questions fréquentes",
+    faq_subtitle: "Tout ce qu'il faut savoir avant de réserver.",
+    asseenin_label: "Reconnu et approuvé",
+  },
+  de: {
+    nav_packages: "Pakete", nav_reviews: "Bewertungen", nav_location: "Standort", nav_home: "Startseite",
+    location_tag: "LEGIAN, BALI — AUTHENTISCHES SILBERSCHMIEDE-STUDIO",
+    hero_headline: "Fertigen Sie Ihren eigenen echten 925er Silberschmuck im Herzen von Legian",
+    hero_subheadline: "Setzen Sie sich zu Silberschmieden in dritter Generation und nehmen Sie einen selbstgemachten Ring, Anhänger oder Armreif mit nach Hause — in einer entspannten 2-stündigen Sitzung.",
+    promo_text: "🎉 September-Aktion: Kostenloser Hotel-Abholservice im Raum Legian & Seminyak bei Buchung ab 2 Personen.",
+    cta_book: "Kurs buchen", cta_explore: "Pakete entdecken",
+    badge_silver: "Inklusive 5–7g reines Silber 925", badge_cert: "Teilnahmezertifikat", badge_beginner: "Für Anfänger geeignet",
+    gallery_title: "Momente aus unserem Studio", gallery_subtitle: "Echte Einblicke in unseren Silberschmuck-Kurs in Legian, Bali.",
+    calc_label: "Interaktiver Rechner", calc_title: "Stellen Sie Ihr Paket zusammen",
+    calc_subtitle: "Wählen Sie Schmuckart, Teilnehmerzahl und zusätzliche Silbergramm — der Preis aktualisiert sich sofort.",
+    jewelry_type_label: "Schmuckart", jewelry_ring: "Ring", jewelry_pendant: "Anhänger", jewelry_bangle: "Armreif",
+    participants_label: "Anzahl der Teilnehmer", participants_suffix: "Personen (max. 10)",
+    extra_grams_label: "Zusätzliche Silbergramm / Person",
+    includes_base: "Enthält eine Basis von {grams}g reinem Silber pro Person für {type}.",
+    total_label: "Geschätzter Gesamtpreis", base_price_label: "Grundpreis / Person", extra_price_label: "Aufpreis",
+    participants_row_label: "Teilnehmer", total_grams_label: "Insgesamt verwendetes Silber", book_now: "Jetzt buchen",
+    visit_us_label: "Besuchen Sie uns", visit_us_title: "Legian, Bali — Finden und vertrauen Sie uns",
+    verified_reviews: "{count}+ verifizierte Google-Bewertungen", open_maps: "Karte öffnen",
+    packages_eyebrow: "Unsere Pakete", packages_title: "Wählen Sie Ihr Schmuckpaket",
+    packages_subtitle: "Jedes Paket enthält echtes 925er Silber, persönliche Anleitung unserer Handwerker und ein Teilnahmezertifikat.",
+    select_customize: "Auswählen & Anpassen", whats_included: "Das ist enthalten",
+    footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Prototyp-Build — nicht für den produktiven Einsatz",
+    language_label: "Sprache", currency_label: "Währung",
+    booking_modal_title: "Schließen Sie Ihre Buchung ab", form_name: "Vollständiger Name", form_email: "E-Mail-Adresse",
+    form_whatsapp: "Aktive WhatsApp-Nummer", form_date: "Gewünschtes Datum", form_slot: "Gewünschter Zeitslot",
+    form_slot_placeholder: "Zeitslot auswählen", form_submit: "Buchung per WhatsApp senden",
+    form_required: "Bitte füllen Sie alle Felder aus, bevor Sie fortfahren.",
+    booking_success: "Buchungsanfrage gesendet! Wir bestätigen in Kürze per WhatsApp.",
+    view_details: "Details ansehen", pkg_excludes_title: "Nicht enthalten", pkg_directions_title: "Anfahrt",
+    extras_label: "Optionale Extras", meeting_label: "Treffpunkt-Option", meeting_studio: "Treffen im Studio",
+    meeting_pickup: "Hotelabholung", pickup_area_label: "Abholgebiet", pickup_area_placeholder: "Wählen Sie Ihr Gebiet",
+    extras_price_label: "Extras", pickup_note_label: "Abholort (Maps-Link oder Hotelname)",
+    pickup_note_placeholder: "z. B. Hotelname oder Google-Maps-Link", pickup_fee_label: "Abholgebühr",
+    about_eyebrow: "Unsere Geschichte", about_title: "Ein Familienhandwerk, weitergegeben über Generationen",
+    team_eyebrow: "Lernen Sie unsere Handwerker kennen", team_title: "Unsere Meister-Silberschmiede",
+    team_subtitle: "Die Hände und Herzen hinter jedem Stück, das Sie anfertigen.",
+    whyus_eyebrow: "Warum uns wählen", whyus_title: "Was uns anders macht",
+    whyus_subtitle: "Nicht nur ein Souvenir — ein echtes Handwerkserlebnis.",
+    steps_eyebrow: "Silber-Lernstufe", steps_title: "Schritte der Silberherstellung",
+    steps_subtitle: "Alles, was Sie erleben werden — vom rohen Silber bis zum fertigen Schmuckstück.",
+    guestgallery_title: "Von unseren Gästen gefertigt", guestgallery_subtitle: "Echte Stücke, echter Stolz — direkt von der Werkbank in ihre Hände.",
+    faq_eyebrow: "Gut zu wissen", faq_title: "Häufig gestellte Fragen",
+    faq_subtitle: "Alles, was Sie vor der Buchung wissen müssen.",
+    asseenin_label: "Vertraut und anerkannt",
+  },
+  es: {
+    nav_packages: "Paquetes", nav_reviews: "Reseñas", nav_location: "Ubicación", nav_home: "Inicio",
+    location_tag: "LEGIAN, BALI — ESTUDIO AUTÉNTICO DE PLATERÍA",
+    hero_headline: "Forja tu propia joya de plata 925 auténtica, en el corazón de Legian",
+    hero_subheadline: "Siéntate junto a plateros locales de tercera generación y llévate a casa un anillo, colgante o brazalete hecho a mano — en una sesión relajada de 2 horas.",
+    promo_text: "🎉 Promoción de septiembre: Traslado gratuito desde hoteles en Legian y Seminyak para reservas de 2 personas o más.",
+    cta_book: "Reserva tu clase", cta_explore: "Explorar paquetes",
+    badge_silver: "Incluye 5–7g de plata pura 925", badge_cert: "Certificado de finalización", badge_beginner: "Apto para principiantes",
+    gallery_title: "Momentos de nuestro estudio", gallery_subtitle: "Una mirada real a nuestra clase de joyería en plata en Legian, Bali.",
+    calc_label: "Calculadora interactiva", calc_title: "Arma tu paquete",
+    calc_subtitle: "Elige el tipo de joya, el número de participantes y gramos extra de plata — el precio se actualiza al instante.",
+    jewelry_type_label: "Tipo de joya", jewelry_ring: "Anillo", jewelry_pendant: "Colgante", jewelry_bangle: "Brazalete",
+    participants_label: "Número de participantes", participants_suffix: "personas (máx. 10)",
+    extra_grams_label: "Gramos extra de plata / persona",
+    includes_base: "Incluye una base de {grams}g de plata pura por persona para el {type}.",
+    total_label: "Total estimado", base_price_label: "Precio base / persona", extra_price_label: "Extra",
+    participants_row_label: "Participantes", total_grams_label: "Plata total utilizada", book_now: "Reservar ahora",
+    visit_us_label: "Visítanos", visit_us_title: "Legian, Bali — Encuéntranos y confía en nosotros",
+    verified_reviews: "{count}+ reseñas verificadas de Google", open_maps: "Abrir mapa",
+    packages_eyebrow: "Nuestros paquetes", packages_title: "Elige tu paquete de joyería",
+    packages_subtitle: "Cada paquete incluye plata 925 auténtica, guía práctica de nuestros artesanos y un certificado de finalización.",
+    select_customize: "Seleccionar y personalizar", whats_included: "Qué incluye",
+    footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Versión prototipo — no apta para producción",
+    language_label: "Idioma", currency_label: "Moneda",
+    booking_modal_title: "Completa tu reserva", form_name: "Nombre completo", form_email: "Correo electrónico",
+    form_whatsapp: "Número de WhatsApp activo", form_date: "Fecha preferida", form_slot: "Horario preferido",
+    form_slot_placeholder: "Selecciona un horario", form_submit: "Enviar reserva por WhatsApp",
+    form_required: "Por favor completa todos los campos antes de continuar.",
+    booking_success: "¡Solicitud de reserva enviada! Confirmaremos pronto por WhatsApp.",
+    view_details: "Ver detalles", pkg_excludes_title: "No incluido", pkg_directions_title: "Cómo llegar",
+    extras_label: "Extras opcionales", meeting_label: "Opción de encuentro", meeting_studio: "Encontrarse en el estudio",
+    meeting_pickup: "Recogida en el hotel", pickup_area_label: "Zona de recogida", pickup_area_placeholder: "Selecciona tu zona",
+    extras_price_label: "Extras", pickup_note_label: "Lugar de recogida (enlace de Maps o nombre del hotel)",
+    pickup_note_placeholder: "ej. nombre del hotel o enlace de Google Maps", pickup_fee_label: "Tarifa de recogida",
+    about_eyebrow: "Nuestra historia", about_title: "Un oficio familiar transmitido de generación en generación",
+    team_eyebrow: "Conoce a los artesanos", team_title: "Nuestros maestros plateros",
+    team_subtitle: "Las manos y corazones detrás de cada pieza que crearás.",
+    whyus_eyebrow: "Por qué elegirnos", whyus_title: "Lo que nos hace diferentes",
+    whyus_subtitle: "No es solo un recuerdo, es una auténtica experiencia artesanal.",
+    steps_eyebrow: "Etapa de aprendizaje de plata", steps_title: "Pasos para hacer plata",
+    steps_subtitle: "Todo lo que vivirás, desde la plata en bruto hasta la joya terminada.",
+    guestgallery_title: "Hecho por nuestros huéspedes", guestgallery_subtitle: "Piezas reales, orgullo real — directo del banco de trabajo a sus manos.",
+    faq_eyebrow: "Bueno saberlo", faq_title: "Preguntas frecuentes",
+    faq_subtitle: "Todo lo que necesitas saber antes de reservar.",
+    asseenin_label: "Confiado y reconocido",
+  },
+  nl: {
+    nav_packages: "Pakketten", nav_reviews: "Reviews", nav_location: "Locatie", nav_home: "Home",
+    location_tag: "LEGIAN, BALI — AUTHENTIEKE ZILVERSMEDERIJ",
+    hero_headline: "Smeed je eigen echte 925 zilveren sieraad, in het hart van Legian",
+    hero_subheadline: "Ga aan de slag naast lokale zilversmeden van de derde generatie en neem een handgemaakte ring, hanger of armband mee naar huis — tijdens één ontspannen sessie van 2 uur.",
+    promo_text: "🎉 Septemberactie: Gratis hotelophaalservice in Legian & Seminyak bij boekingen vanaf 2 personen.",
+    cta_book: "Boek je les", cta_explore: "Bekijk pakketten",
+    badge_silver: "Inclusief 5–7g puur zilver 925", badge_cert: "Certificaat van deelname", badge_beginner: "Geschikt voor beginners",
+    gallery_title: "Momenten uit onze studio", gallery_subtitle: "Een echte kijk in onze zilversmeedcursus in Legian, Bali.",
+    calc_label: "Interactieve calculator", calc_title: "Stel je pakket samen",
+    calc_subtitle: "Kies een sieraadtype, aantal deelnemers en extra grammen zilver — de prijs wordt direct bijgewerkt.",
+    jewelry_type_label: "Type sieraad", jewelry_ring: "Ring", jewelry_pendant: "Hanger", jewelry_bangle: "Armband",
+    participants_label: "Aantal deelnemers", participants_suffix: "personen (max. 10)",
+    extra_grams_label: "Extra grammen zilver / persoon",
+    includes_base: "Inclusief een basis van {grams}g puur zilver per persoon voor de {type}.",
+    total_label: "Geschatte totaalprijs", base_price_label: "Basisprijs / persoon", extra_price_label: "Extra",
+    participants_row_label: "Deelnemers", total_grams_label: "Totaal gebruikt zilver", book_now: "Nu boeken",
+    visit_us_label: "Bezoek ons", visit_us_title: "Legian, Bali — Vind en vertrouw ons",
+    verified_reviews: "{count}+ geverifieerde Google-reviews", open_maps: "Kaart openen",
+    packages_eyebrow: "Onze pakketten", packages_title: "Kies je sieradenpakket",
+    packages_subtitle: "Elk pakket bevat echt 925 zilver, persoonlijke begeleiding van onze ambachtslieden en een certificaat van deelname.",
+    select_customize: "Selecteren & aanpassen", whats_included: "Wat is inbegrepen",
+    footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Prototype-build — niet voor productiegebruik",
+    language_label: "Taal", currency_label: "Valuta",
+    booking_modal_title: "Voltooi je boeking", form_name: "Volledige naam", form_email: "E-mailadres",
+    form_whatsapp: "Actief WhatsApp-nummer", form_date: "Gewenste datum", form_slot: "Gewenst tijdslot",
+    form_slot_placeholder: "Kies een tijdslot", form_submit: "Boeking verzenden via WhatsApp",
+    form_required: "Vul alle velden in voordat je verdergaat.",
+    booking_success: "Boekingsaanvraag verzonden! We bevestigen binnenkort via WhatsApp.",
+    view_details: "Bekijk details", pkg_excludes_title: "Niet inbegrepen", pkg_directions_title: "Hoe te bereiken",
+    extras_label: "Optionele extra's", meeting_label: "Ontmoetingsoptie", meeting_studio: "Afspreken bij de studio",
+    meeting_pickup: "Hotelophaalservice", pickup_area_label: "Ophaalgebied", pickup_area_placeholder: "Kies je gebied",
+    extras_price_label: "Extra's", pickup_note_label: "Ophaallocatie (Maps-link of hotelnaam)",
+    pickup_note_placeholder: "bijv. hotelnaam of Google Maps-link", pickup_fee_label: "Ophaalkosten",
+    about_eyebrow: "Ons verhaal", about_title: "Een familieambacht, doorgegeven van generatie op generatie",
+    team_eyebrow: "Maak kennis met de makers", team_title: "Onze meester-zilversmeden",
+    team_subtitle: "De handen en harten achter elk stuk dat je zult maken.",
+    whyus_eyebrow: "Waarom wij", whyus_title: "Wat ons anders maakt",
+    whyus_subtitle: "Niet zomaar een souvenir — een echte ambachtelijke ervaring.",
+    steps_eyebrow: "Zilver-leerfase", steps_title: "Stappen bij het maken van zilver",
+    steps_subtitle: "Alles wat je zult ervaren, van ruw zilver tot afgewerkt sieraad.",
+    guestgallery_title: "Gemaakt door onze gasten", guestgallery_subtitle: "Echte stukken, echte trots — rechtstreeks van de werkbank naar hun handen.",
+    faq_eyebrow: "Goed om te weten", faq_title: "Veelgestelde vragen",
+    faq_subtitle: "Alles wat je moet weten voordat je boekt.",
+    asseenin_label: "Vertrouwd en erkend",
+  },
+};
+
+function tr(lang, key, vars) {
+  let str = (TRANSLATIONS[lang] && TRANSLATIONS[lang][key]) || TRANSLATIONS.en[key] || key;
+  if (vars) {
+    Object.keys(vars).forEach((k) => {
+      str = str.replace("{" + k + "}", vars[k]);
+    });
+  }
+  return str;
+}
+
+/* ------------------------------------------------------------------ */
+/*  MOCK DATA                                                          */
+/* ------------------------------------------------------------------ */
+
+const ICON_OPTIONS = [
+  { key: "gem", icon: Gem, label: "Gem" },
+  { key: "sparkles", icon: Sparkles, label: "Sparkles" },
+  { key: "award", icon: Award, label: "Award" },
+  { key: "star", icon: Star, label: "Star" },
+  { key: "heart", icon: Heart, label: "Heart" },
+  { key: "crown", icon: Crown, label: "Crown" },
+];
+const iconFor = (key) => (ICON_OPTIONS.find((o) => o.key === key) || ICON_OPTIONS[0]).icon;
+const pkgName = (jt, lang) => (jt.custom ? jt.name : tr(lang, "jewelry_" + jt.id));
+
+const initialCatalog = [
+  { id: "ring", custom: false, iconKey: "gem", basePrice: 450000, baseGrams: 5, coverPhoto: PACKAGE_PHOTOS.ring, gallery: ["FAMILY SILVER CLASS_0002.jpg", "FAMILY SILVER CLASS_0004.jpg"], slots: [...DEFAULT_SLOTS] },
+  { id: "pendant", custom: false, iconKey: "sparkles", basePrice: 500000, baseGrams: 6, coverPhoto: PACKAGE_PHOTOS.pendant, gallery: ["FAMILY SILVER CLASS_0003.jpg", "FAMILY SILVER CLASS_0005.jpg"], slots: [...DEFAULT_SLOTS] },
+  { id: "bangle", custom: false, iconKey: "award", basePrice: 650000, baseGrams: 7, coverPhoto: PACKAGE_PHOTOS.bangle, gallery: ["FAMILY SILVER CLASS_0006.jpg", "FAMILY SILVER CLASS_0007.jpg"], slots: [...DEFAULT_SLOTS] },
+];
+const initialPerGram = 45000;
+
+const initialSettings = {
+  whatsappNumber: "6281234567890",
+  googleRating: 5.0,
+  googleReviewCount: 215,
+  googleLastUpdated: "2026-09-19",
+  mapAddress: initialMapAddress,
+  promoDeadline: "2026-09-30T23:59:59",
+  instagramHandle: "@familysilverclassbali",
+  beforeAfter: {
+    beforePhoto: "FAMILY SILVER CLASS_0002_0001_312321312.jpg",
+    afterPhoto: "FAMILY SILVER CLASS_0009.jpg",
+  },
+  pickupAreas: [
+    { id: "area-legian", name: "Legian", price: 0 },
+    { id: "area-kuta", name: "Kuta", price: 50000 },
+    { id: "area-seminyak", name: "Seminyak", price: 75000 },
+    { id: "area-canggu", name: "Canggu", price: 150000 },
+    { id: "area-nusadua", name: "Nusa Dua", price: 200000 },
+    { id: "area-jimbaran", name: "Jimbaran", price: 175000 },
+  ],
+};
+
+const initialExtras = [
+  { id: "extra-photo", name: "Photo & Video Package", price: 150000 },
+  { id: "extra-engraving", name: "Extra Engraving", price: 50000 },
+  { id: "extra-giftbox", name: "Gift Box Packaging", price: 25000 },
+];
+
+const PACKAGE_DETAILS = {
+  en: {
+    directions: "We're on Jl. Padma Utara in Legian, a 2-minute walk from Padma Beach. From Ngurah Rai Airport it's about a 25-minute drive (Grab/Gojek available) — look for the silver hammer sign next to Warung Bu Mi.",
+    packages: {
+      ring: { description: "A perfect first-timer's project — shape, saw, and polish your own sterling silver ring in about 2 hours, guided one-on-one by a Balinese silversmith.", includes: "5g of genuine 925 sterling silver\nAll tools & safety equipment\n1-on-1 guidance from a master silversmith\nCertificate of completion", excludes: "Hotel transport (paid add-on available)\nGemstone settings & ring resizing" },
+      pendant: { description: "Design a one-of-a-kind pendant necklace, from sketching your shape to soldering and polishing the final piece.", includes: "6g of genuine 925 sterling silver\nAll tools & safety equipment\n1-on-1 guidance from a master silversmith\nCertificate of completion", excludes: "Hotel transport (paid add-on available)\nCustom engraving & extra chain length" },
+      bangle: { description: "Hammer, shape, and finish a solid silver bangle wide enough to make a statement — our most popular class for couples.", includes: "7g of genuine 925 sterling silver\nAll tools & safety equipment\n1-on-1 guidance from a master silversmith\nCertificate of completion", excludes: "Hotel transport (paid add-on available)\nEngraving, stone inlay & resizing" },
+    },
+  },
+  id: {
+    directions: "Kami berada di Jl. Padma Utara, Legian, hanya 2 menit jalan kaki dari Pantai Padma. Dari Bandara Ngurah Rai sekitar 25 menit berkendara (Grab/Gojek tersedia) — cari papan tanda palu perak di sebelah Warung Bu Mi.",
+    packages: {
+      ring: { description: "Proyek sempurna untuk pemula — bentuk, gergaji, dan poles cincin perak murni Anda sendiri dalam sekitar 2 jam, dibimbing satu-lawan-satu oleh pengrajin perak Bali.", includes: "5g perak murni 925 asli\nSemua alat & perlengkapan keselamatan\nBimbingan langsung dari master pengrajin\nSertifikat kelulusan", excludes: "Transportasi hotel (tersedia sebagai tambahan berbayar)\nPemasangan batu permata & pengubahan ukuran cincin" },
+      pendant: { description: "Rancang liontin unik Anda sendiri, mulai dari membuat sketsa bentuk hingga menyolder dan memoles hasil akhirnya.", includes: "6g perak murni 925 asli\nSemua alat & perlengkapan keselamatan\nBimbingan langsung dari master pengrajin\nSertifikat kelulusan", excludes: "Transportasi hotel (tersedia sebagai tambahan berbayar)\nUkiran khusus & tambahan panjang rantai" },
+      bangle: { description: "Tempa, bentuk, dan haluskan gelang perak solid yang cukup lebar untuk tampil mencolok — kelas favorit untuk pasangan.", includes: "7g perak murni 925 asli\nSemua alat & perlengkapan keselamatan\nBimbingan langsung dari master pengrajin\nSertifikat kelulusan", excludes: "Transportasi hotel (tersedia sebagai tambahan berbayar)\nUkiran, tatahan batu & pengubahan ukuran" },
+    },
+  },
+  zh: {
+    directions: "我们位于雷吉安Jl. Padma Utara,步行2分钟即可到达Padma海滩。从伍拉·赖国际机场驾车约25分钟(可使用Grab/Gojek)——请寻找Warung Bu Mi旁边的银锤招牌。",
+    packages: {
+      ring: { description: "非常适合新手的项目——在大约2小时内,由巴厘岛银匠一对一指导,亲手塑形、锯切并抛光您自己的纯银戒指。", includes: "5克正宗925纯银\n所有工具及安全装备\n大师级银匠一对一指导\n结业证书", excludes: "酒店接送(可付费加购)\n宝石镶嵌及戒指改size" },
+      pendant: { description: "设计独一无二的吊坠项链,从绘制形状草图到焊接和抛光成品。", includes: "6克正宗925纯银\n所有工具及安全装备\n大师级银匠一对一指导\n结业证书", excludes: "酒店接送(可付费加购)\n定制雕刻及加长链条" },
+      bangle: { description: "锤打、塑形并打磨一款足够醒目的纯银手镯——情侣们最喜爱的课程。", includes: "7克正宗925纯银\n所有工具及安全装备\n大师级银匠一对一指导\n结业证书", excludes: "酒店接送(可付费加购)\n雕刻、镶石及改size" },
+    },
+  },
+  ja: {
+    directions: "レギャンのJl. Padma Utaraにあり、パドマビーチから徒歩2分です。グラライ国際空港から車で約25分(Grab/Gojek利用可)——Warung Bu Miの隣にある銀のハンマーの看板が目印です。",
+    packages: {
+      ring: { description: "初めての方に最適なプロジェクト——バリの銀細工職人によるマンツーマン指導のもと、約2時間で純銀の指輪を成形・切断・研磨します。", includes: "純銀925 5g\nすべての工具と安全装備\n熟練職人によるマンツーマン指導\n修了証明書", excludes: "ホテル送迎(有料オプションあり)\n宝石のセッティング・指輪のサイズ直し" },
+      pendant: { description: "形のスケッチからはんだ付け、仕上げの研磨まで、世界に一つだけのペンダントネックレスをデザインします。", includes: "純銀925 6g\nすべての工具と安全装備\n熟練職人によるマンツーマン指導\n修了証明書", excludes: "ホテル送迎(有料オプションあり)\n特注彫刻・チェーンの延長" },
+      bangle: { description: "存在感のある幅広の純銀バングルを打ち出し、成形し、仕上げます——カップルに人気No.1のクラスです。", includes: "純銀925 7g\nすべての工具と安全装備\n熟練職人によるマンツーマン指導\n修了証明書", excludes: "ホテル送迎(有料オプションあり)\n彫刻・石の象嵌・サイズ直し" },
+    },
+  },
+  ko: {
+    directions: "저희는 레기안 Jl. Padma Utara에 위치해 있으며, 파드마 비치에서 도보 2분 거리입니다. 응우라라이 국제공항에서 차로 약 25분 소요됩니다 (Grab/Gojek 이용 가능) — Warung Bu Mi 옆의 은색 망치 간판을 찾으세요.",
+    packages: {
+      ring: { description: "초보자에게 완벽한 프로젝트 — 발리 은세공 장인의 1:1 지도 아래 약 2시간 동안 순은 반지를 직접 성형, 절단, 연마합니다.", includes: "순은 925 5g\n모든 도구 및 안전 장비\n마스터 은세공 장인의 1:1 지도\n수료증", excludes: "호텔 픽업 (유료 옵션 제공)\n보석 세팅 및 반지 사이즈 조정" },
+      pendant: { description: "모양 스케치부터 납땜, 마무리 연마까지, 세상에 하나뿐인 펜던트 목걸이를 디자인합니다.", includes: "순은 925 6g\n모든 도구 및 안전 장비\n마스터 은세공 장인의 1:1 지도\n수료증", excludes: "호텔 픽업 (유료 옵션 제공)\n맞춤 각인 및 체인 길이 연장" },
+      bangle: { description: "존재감 있는 두께의 순은 뱅글을 두드리고 성형하여 마무리합니다 — 커플에게 가장 인기 있는 클래스입니다.", includes: "순은 925 7g\n모든 도구 및 안전 장비\n마스터 은세공 장인의 1:1 지도\n수료증", excludes: "호텔 픽업 (유료 옵션 제공)\n각인, 보석 인레이 및 사이즈 조정" },
+    },
+  },
+  ru: {
+    directions: "Мы находимся на Jl. Padma Utara в Легиане, в 2 минутах ходьбы от пляжа Падма. От аэропорта Нгурах Рай — около 25 минут на машине (доступны Grab/Gojek) — ищите вывеску с серебряным молотком рядом с Warung Bu Mi.",
+    packages: {
+      ring: { description: "Идеальный проект для новичков — придайте форму, распилите и отполируйте собственное кольцо из чистого серебра примерно за 2 часа под личным руководством балийского мастера-серебряника.", includes: "5г настоящего серебра 925 пробы\nВсе инструменты и защитное снаряжение\nЛичное руководство мастера-серебряника\nСертификат об окончании", excludes: "Трансфер из отеля (доступен за доплату)\nУстановка камней и изменение размера кольца" },
+      pendant: { description: "Создайте уникальный кулон-подвеску — от эскиза формы до пайки и полировки готового изделия.", includes: "6г настоящего серебра 925 пробы\nВсе инструменты и защитное снаряжение\nЛичное руководство мастера-серебряника\nСертификат об окончании", excludes: "Трансфер из отеля (доступен за доплату)\nИндивидуальная гравировка и удлинение цепочки" },
+      bangle: { description: "Выкуйте, придайте форму и отполируйте массивный серебряный браслет, который точно привлечёт внимание — самый популярный урок для пар.", includes: "7г настоящего серебра 925 пробы\nВсе инструменты и защитное снаряжение\nЛичное руководство мастера-серебряника\nСертификат об окончании", excludes: "Трансфер из отеля (доступен за доплату)\nГравировка, инкрустация камнями и изменение размера" },
+    },
+  },
+  fr: {
+    directions: "Nous sommes situés sur Jl. Padma Utara à Legian, à 2 minutes à pied de la plage de Padma. Depuis l'aéroport de Ngurah Rai, comptez environ 25 minutes en voiture (Grab/Gojek disponibles) — cherchez l'enseigne du marteau en argent à côté du Warung Bu Mi.",
+    packages: {
+      ring: { description: "Un projet parfait pour débuter — façonnez, sciez et polissez votre propre bague en argent massif en environ 2 heures, guidé individuellement par un orfèvre balinais.", includes: "5g d'argent pur 925 authentique\nTous les outils et équipements de sécurité\nAccompagnement individuel d'un maître orfèvre\nCertificat de fin de cours", excludes: "Transfert hôtelier (option payante disponible)\nSertissage de pierres et redimensionnement de la bague" },
+      pendant: { description: "Concevez un pendentif unique en son genre, du croquis de la forme à la soudure et au polissage final.", includes: "6g d'argent pur 925 authentique\nTous les outils et équipements de sécurité\nAccompagnement individuel d'un maître orfèvre\nCertificat de fin de cours", excludes: "Transfert hôtelier (option payante disponible)\nGravure personnalisée et rallonge de chaîne" },
+      bangle: { description: "Martelez, façonnez et finissez un bracelet en argent massif assez large pour faire sensation — notre cours le plus populaire pour les couples.", includes: "7g d'argent pur 925 authentique\nTous les outils et équipements de sécurité\nAccompagnement individuel d'un maître orfèvre\nCertificat de fin de cours", excludes: "Transfert hôtelier (option payante disponible)\nGravure, incrustation de pierres et redimensionnement" },
+    },
+  },
+  de: {
+    directions: "Wir befinden uns in der Jl. Padma Utara in Legian, 2 Gehminuten vom Padma Beach entfernt. Vom Flughafen Ngurah Rai sind es etwa 25 Minuten mit dem Auto (Grab/Gojek verfügbar) — achten Sie auf das silberne Hammer-Schild neben dem Warung Bu Mi.",
+    packages: {
+      ring: { description: "Ein perfektes Projekt für Anfänger — formen, sägen und polieren Sie in etwa 2 Stunden Ihren eigenen Ring aus massivem Silber, persönlich angeleitet von einem balinesischen Silberschmied.", includes: "5g echtes Silber 925\nAlle Werkzeuge und Sicherheitsausrüstung\nPersönliche Anleitung eines Meister-Silberschmieds\nTeilnahmezertifikat", excludes: "Hotel-Transfer (gegen Aufpreis buchbar)\nEdelsteinfassungen und Ringgrößenänderung" },
+      pendant: { description: "Gestalten Sie einen einzigartigen Anhänger — von der ersten Skizze über das Löten bis zum finalen Polieren.", includes: "6g echtes Silber 925\nAlle Werkzeuge und Sicherheitsausrüstung\nPersönliche Anleitung eines Meister-Silberschmieds\nTeilnahmezertifikat", excludes: "Hotel-Transfer (gegen Aufpreis buchbar)\nIndividuelle Gravur und zusätzliche Kettenlänge" },
+      bangle: { description: "Hämmern, formen und polieren Sie einen breiten, massiven Silberarmreif, der garantiert auffällt — unser beliebtester Kurs für Paare.", includes: "7g echtes Silber 925\nAlle Werkzeuge und Sicherheitsausrüstung\nPersönliche Anleitung eines Meister-Silberschmieds\nTeilnahmezertifikat", excludes: "Hotel-Transfer (gegen Aufpreis buchbar)\nGravur, Steinbesatz und Größenänderung" },
+    },
+  },
+  es: {
+    directions: "Estamos en Jl. Padma Utara, Legian, a 2 minutos a pie de la playa Padma. Desde el aeropuerto Ngurah Rai son unos 25 minutos en coche (Grab/Gojek disponibles) — busca el letrero del martillo plateado junto al Warung Bu Mi.",
+    packages: {
+      ring: { description: "Un proyecto perfecto para principiantes — moldea, sierra y pule tu propio anillo de plata pura en unas 2 horas, con guía personalizada de un platero balinés.", includes: "5g de plata pura 925 auténtica\nTodas las herramientas y equipo de seguridad\nGuía personalizada de un maestro platero\nCertificado de finalización", excludes: "Traslado desde el hotel (disponible con costo adicional)\nEngastes de piedras y ajuste de talla del anillo" },
+      pendant: { description: "Diseña un colgante único, desde el boceto de la forma hasta la soldadura y el pulido final.", includes: "6g de plata pura 925 auténtica\nTodas las herramientas y equipo de seguridad\nGuía personalizada de un maestro platero\nCertificado de finalización", excludes: "Traslado desde el hotel (disponible con costo adicional)\nGrabado personalizado y largo adicional de cadena" },
+      bangle: { description: "Martilla, moldea y pule un brazalete de plata maciza lo suficientemente ancho para destacar — nuestra clase más popular para parejas.", includes: "7g de plata pura 925 auténtica\nTodas las herramientas y equipo de seguridad\nGuía personalizada de un maestro platero\nCertificado de finalización", excludes: "Traslado desde el hotel (disponible con costo adicional)\nGrabado, incrustación de piedras y ajuste de talla" },
+    },
+  },
+  nl: {
+    directions: "We zitten aan de Jl. Padma Utara in Legian, 2 minuten lopen van Padma Beach. Vanaf luchthaven Ngurah Rai is het ongeveer 25 minuten rijden (Grab/Gojek beschikbaar) — let op het bord met de zilveren hamer naast Warung Bu Mi.",
+    packages: {
+      ring: { description: "Een perfect project voor beginners — vorm, zaag en polijst je eigen zilveren ring in ongeveer 2 uur, met persoonlijke begeleiding van een Balinese zilversmid.", includes: "5g echt zilver 925\nAlle gereedschappen en veiligheidsuitrusting\nPersoonlijke begeleiding van een meester-zilversmid\nCertificaat van deelname", excludes: "Hotelvervoer (tegen betaling beschikbaar)\nEdelsteenzetting en het aanpassen van de ringmaat" },
+      pendant: { description: "Ontwerp een unieke hanger, van het schetsen van de vorm tot het solderen en polijsten van het eindresultaat.", includes: "6g echt zilver 925\nAlle gereedschappen en veiligheidsuitrusting\nPersoonlijke begeleiding van een meester-zilversmid\nCertificaat van deelname", excludes: "Hotelvervoer (tegen betaling beschikbaar)\nOp maat gemaakte gravure en extra kettinglengte" },
+      bangle: { description: "Hamer, vorm en polijst een brede, massief zilveren armband die garant staat voor een statement — onze populairste les voor stellen.", includes: "7g echt zilver 925\nAlle gereedschappen en veiligheidsuitrusting\nPersoonlijke begeleiding van een meester-zilversmid\nCertificaat van deelname", excludes: "Hotelvervoer (tegen betaling beschikbaar)\nGravure, steenbezetting en het aanpassen van de maat" },
+    },
+  },
+};
+
+const HOMEPAGE_EXTRAS = {
+  en: {
+    about: "Family Silver Class Bali began three generations ago with a single anvil and a passion for silver. Today, our family still teaches every guest by hand — the same techniques passed from grandfather to father to us — so you leave not just with a piece of jewelry, but a piece of our story.",
+    whyUs: [
+      { icon: "gem", title: "Genuine 925 Silver", description: "Every piece is made from certified sterling silver — not silver-plated souvenirs." },
+      { icon: "heart", title: "Family-Run Heritage", description: "Three generations of silversmithing knowledge, shared with warmth and patience." },
+      { icon: "award", title: "Small Groups Only", description: "Hands-on guidance in intimate sessions, never a rushed factory-line experience." },
+    ],
+    steps: [
+      { title: "Pick Your Design", description: "Choose a sample ring, pendant, or bangle shape — or bring your own idea to craft.", photo: "FAMILY SILVER CLASS_0003.jpg" },
+      { title: "Melt the Silver", description: "Watch and help melt pure silver over red-hot fire, the first step of the craft.", photo: "FAMILY SILVER CLASS_0002_0001_312321312.jpg" },
+      { title: "Grind & Shape", description: "Grind the silver into your chosen form, guided by your instructor.", photo: "FAMILY SILVER CLASS_0010.jpg" },
+      { title: "Solidify the Piece", description: "The shaped silver is cooled and solidified into its base form.", photo: "FAMILY SILVER CLASS_0002_0003_312312312312.jpg" },
+      { title: "Engrave the Detail", description: "Add texture, patterns, or engraving to make the piece truly yours.", photo: "FAMILY SILVER CLASS_0011.jpg" },
+      { title: "Refine & Polish", description: "Every edge is refined and polished until it shines like fine jewelry.", photo: "FAMILY SILVER CLASS_0013.jpg" },
+      { title: "Take It Home", description: "Your finished silver piece is ready to wear — and to keep forever.", photo: "FAMILY SILVER CLASS_0009.jpg" },
+    ],
+    faq: [
+      { q: "Do I need any experience?", a: "None at all — our classes are designed for complete beginners, with full guidance from start to finish." },
+      { q: "Can children join the class?", a: "Yes, children are welcome with adult supervision. We recommend ages 8 and up for hands-on tools." },
+      { q: "What if I need to reschedule?", a: "Just message us on WhatsApp at least 24 hours before your session and we'll help you find a new slot." },
+      { q: "How long does the class take?", a: "Most sessions run about 2 hours, depending on the piece and number of participants." },
+      { q: "Is hotel pickup available?", a: "Yes — select Hotel Pickup during booking and choose your area; a small fee may apply." },
+    ],
+    stats: [
+      { value: 3, decimals: 0, suffix: "", label: "Generations of Silversmiths" },
+      { value: 1500, decimals: 0, suffix: "+", label: "Happy Guests Trained" },
+      { value: 215, decimals: 0, suffix: "+", label: "Verified Google Reviews" },
+      { value: 5, decimals: 1, suffix: "★", label: "Average Rating" },
+    ],
+  },
+  id: {
+    about: "Family Silver Class Bali dimulai tiga generasi lalu dari satu landasan dan kecintaan pada perak. Hingga kini, keluarga kami masih mengajar setiap tamu secara langsung — dengan teknik yang sama yang diwariskan dari kakek ke ayah hingga kami — sehingga Anda pulang bukan hanya membawa perhiasan, tapi sepenggal kisah kami.",
+    whyUs: [
+      { icon: "gem", title: "Perak 925 Asli", description: "Setiap karya dibuat dari perak murni bersertifikat — bukan sekadar perhiasan berlapis perak." },
+      { icon: "heart", title: "Warisan Keluarga", description: "Pengetahuan mengrajin perak tiga generasi, dibagikan dengan kehangatan dan kesabaran." },
+      { icon: "award", title: "Kelompok Kecil", description: "Bimbingan langsung dalam sesi intim, bukan pengalaman terburu-buru ala pabrik." },
+    ],
+    steps: [
+      { title: "Pilih Desain Anda", description: "Pilih contoh bentuk cincin, pendant, atau gelang — atau bawa ide Anda sendiri untuk dibuat.", photo: "FAMILY SILVER CLASS_0003.jpg" },
+      { title: "Melebur Perak", description: "Lihat dan bantu melebur perak murni di atas api membara, langkah pertama dalam kerajinan ini.", photo: "FAMILY SILVER CLASS_0002_0001_312321312.jpg" },
+      { title: "Menggerinda & Membentuk", description: "Menggerinda perak menjadi bentuk pilihan Anda, dipandu oleh instruktur.", photo: "FAMILY SILVER CLASS_0010.jpg" },
+      { title: "Memadatkan Bentuk", description: "Perak yang telah dibentuk didinginkan dan dipadatkan menjadi bentuk dasarnya.", photo: "FAMILY SILVER CLASS_0002_0003_312312312312.jpg" },
+      { title: "Mengukir Detail", description: "Menambahkan tekstur, pola, atau ukiran agar karya benar-benar milik Anda.", photo: "FAMILY SILVER CLASS_0011.jpg" },
+      { title: "Menghaluskan & Memoles", description: "Setiap sisi dihaluskan dan dipoles hingga berkilau layaknya perhiasan asli.", photo: "FAMILY SILVER CLASS_0013.jpg" },
+      { title: "Bawa Pulang", description: "Karya perak Anda siap dipakai — dan disimpan selamanya.", photo: "FAMILY SILVER CLASS_0009.jpg" },
+    ],
+    faq: [
+      { q: "Apakah saya perlu pengalaman?", a: "Sama sekali tidak — kelas kami dirancang untuk pemula total, dengan bimbingan penuh dari awal hingga akhir." },
+      { q: "Apakah anak-anak boleh ikut?", a: "Ya, anak-anak boleh ikut dengan pengawasan orang dewasa. Kami sarankan usia 8 tahun ke atas untuk penggunaan alat." },
+      { q: "Bagaimana jika saya perlu reschedule?", a: "Cukup hubungi kami via WhatsApp minimal 24 jam sebelum sesi, dan kami akan bantu carikan jadwal baru." },
+      { q: "Berapa lama durasi kelasnya?", a: "Sebagian besar sesi berlangsung sekitar 2 jam, tergantung jenis karya dan jumlah peserta." },
+      { q: "Apakah ada penjemputan hotel?", a: "Ya — pilih Hotel Pickup saat booking dan tentukan area Anda; mungkin ada biaya tambahan." },
+    ],
+    stats: [
+      { value: 3, decimals: 0, suffix: "", label: "Generasi Pengrajin Perak" },
+      { value: 1500, decimals: 0, suffix: "+", label: "Tamu Bahagia Terlatih" },
+      { value: 215, decimals: 0, suffix: "+", label: "Ulasan Google Terverifikasi" },
+      { value: 5, decimals: 1, suffix: "★", label: "Rating Rata-rata" },
+    ],
+  },
+};
+
+function buildInitialContent() {
+  const out = {};
+  LANGUAGES.forEach((l) => {
+    const T = TRANSLATIONS[l.code];
+    const d = PACKAGE_DETAILS[l.code];
+    const h = HOMEPAGE_EXTRAS[l.code] || HOMEPAGE_EXTRAS.en;
+    out[l.code] = {
+      headline: T.hero_headline,
+      subheadline: T.hero_subheadline,
+      promo: T.promo_text,
+      description: T.hero_subheadline,
+      directions: d.directions,
+      packages: d.packages,
+      about: h.about,
+      whyUs: h.whyUs,
+      steps: h.steps,
+      faq: h.faq,
+      stats: h.stats,
+    };
+  });
+  return out;
+}
+
+const initialReviews = [
+  { id: 1, name: "Sarah Mitchell", country: "Australia", avatarColor: "#C6A15B", rating: 5, date: "2 weeks ago",
+    text: "Absolutely magical experience! Our instructor was so patient and I left with a ring I actually made myself. The silver quality feels premium and the studio in Legian is beautiful.",
+    reply: "Thank you Sarah! We loved sharing this craft with you. See you again in Bali! 🙏" },
+  { id: 2, name: "Kenji Watanabe", country: "Japan", avatarColor: "#8B93A5", rating: 5, date: "1 month ago",
+    text: "Very professional and authentic. My wife and I made matching bangles for our anniversary. Highly recommend booking the couple package in advance.", reply: null },
+  { id: 3, name: "Dewi Anggraini", country: "Indonesia", avatarColor: "#B08D57", rating: 4, date: "1 month ago",
+    text: "Seru banget! Anak-anak juga bisa ikutan bikin pendant sendiri. Tempatnya nyaman dan pengrajinnya ramah, cuma parkirnya agak sempit.",
+    reply: "Halo Dewi, terima kasih ulasannya! Kami sedang perluas area parkir bulan depan ya. Sampai ketemu lagi 😊" },
+  { id: 4, name: "Emma Rousseau", country: "France", avatarColor: "#6B7280", rating: 5, date: "2 months ago",
+    text: "Best souvenir from Bali by far — a piece of jewelry I made with my own hands. The certificate of completion is a nice touch too.", reply: null },
+];
+
+const initialReservations = [
+  { id: "RSV-1042", name: "Michael Chen", date: "2026-09-22", pax: 2, status: "Confirmed" },
+  { id: "RSV-1043", name: "Putu Ayu Lestari", date: "2026-09-23", pax: 4, status: "Pending" },
+  { id: "RSV-1044", name: "Laura Bennett", date: "2026-09-24", pax: 1, status: "Confirmed" },
+  { id: "RSV-1045", name: "Hiro Tanaka", date: "2026-09-25", pax: 2, status: "Pending" },
+  { id: "RSV-1046", name: "Sophie & James Carter", date: "2026-09-26", pax: 2, status: "Confirmed" },
+];
+
+const initialAccountingApps = [
+  { id: "app-wa", name: "WhatsApp Langsung" },
+  { id: "app-ig", name: "Instagram" },
+  { id: "app-tripadvisor", name: "TripAdvisor" },
+  { id: "app-traveloka", name: "Traveloka Xperience" },
+  { id: "app-walkin", name: "Walk-in" },
+];
+
+const initialAccountingVendors = [
+  { id: "vendor-made", name: "Made Wirawan", phone: "6281234000001", note: "Instruktur senior, 3rd generation" },
+  { id: "vendor-kadek", name: "Kadek Suartika", phone: "6281234000002", note: "Instruktur" },
+  { id: "vendor-wayan", name: "Wayan Sari", phone: "6281234000003", note: "Instruktur desain" },
+];
+
+const initialAccountingTransactions = [
+  { id: "TX-1001", date: "2026-07-05", appId: "app-wa", guestName: "Michael Chen", phone: "6281200000001", email: "michael@example.com", pax: 2, activityName: "Silver Ring Making Class", costPrice: 900000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-made", amount: 250000, paid: true, note: "Sesi 2 pax" }] },
+  { id: "TX-1002", date: "2026-07-14", appId: "app-ig", guestName: "Sophie Carter", phone: "6281200000002", email: "sophie@example.com", pax: 2, activityName: "Couple Bangle Package", costPrice: 1300000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-kadek", amount: 300000, paid: true, note: "" }] },
+  { id: "TX-1003", date: "2026-07-22", appId: "app-tripadvisor", guestName: "Hiro Tanaka", phone: "6281200000003", email: "hiro@example.com", pax: 1, activityName: "Pendant Making Class", costPrice: 500000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-wayan", amount: 150000, paid: true, note: "" }] },
+  { id: "TX-1004", date: "2026-08-03", appId: "app-traveloka", guestName: "Putu Ayu Lestari", phone: "6281200000004", email: "putu@example.com", pax: 4, activityName: "Family Ring Package", costPrice: 1800000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-made", amount: 400000, paid: true, note: "" }, { id: "p2", vendorId: "vendor-kadek", amount: 150000, paid: false, note: "Bantu sesi kedua" }] },
+  { id: "TX-1005", date: "2026-08-11", appId: "app-wa", guestName: "Laura Bennett", phone: "6281200000005", email: "laura@example.com", pax: 1, activityName: "Bangle Making Class", costPrice: 650000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-wayan", amount: 175000, paid: true, note: "" }] },
+  { id: "TX-1006", date: "2026-08-19", appId: "app-walkin", guestName: "Kenji Watanabe", phone: "6281200000006", email: "kenji@example.com", pax: 2, activityName: "Matching Bangle Package", costPrice: 1300000, refund: 100000, note: "Refund sebagian karena reschedule",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-made", amount: 300000, paid: true, note: "" }] },
+  { id: "TX-1007", date: "2026-09-02", appId: "app-ig", guestName: "Emma Rousseau", phone: "6281200000007", email: "emma@example.com", pax: 1, activityName: "Ring Making Class", costPrice: 450000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-kadek", amount: 130000, paid: true, note: "" }] },
+  { id: "TX-1008", date: "2026-09-10", appId: "app-tripadvisor", guestName: "Dewi Anggraini", phone: "6281200000008", email: "dewi@example.com", pax: 3, activityName: "Family Pendant Package", costPrice: 1500000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-wayan", amount: 350000, paid: false, note: "" }] },
+  { id: "TX-1009", date: "2026-09-16", appId: "app-wa", guestName: "Sarah Mitchell", phone: "6281200000009", email: "sarah@example.com", pax: 2, activityName: "Couple Ring Package", costPrice: 900000, refund: 0, note: "",
+    instructorPayments: [{ id: "p1", vendorId: "vendor-made", amount: 250000, paid: false, note: "" }] },
+];
+
+const initialAccountingOperational = [
+  { id: "OP-1", date: "2026-07-10", quantity: 1, need: "Sewa tempat Juli", totalAmount: 3500000, note: "" },
+  { id: "OP-2", date: "2026-08-05", quantity: 1, need: "Restock bahan perak murni", totalAmount: 4200000, note: "Beli 2kg perak batangan" },
+  { id: "OP-3", date: "2026-08-10", quantity: 1, need: "Sewa tempat Agustus", totalAmount: 3500000, note: "" },
+  { id: "OP-4", date: "2026-09-01", quantity: 1, need: "Listrik & air September", totalAmount: 850000, note: "" },
+  { id: "OP-5", date: "2026-09-10", quantity: 1, need: "Sewa tempat September", totalAmount: 3500000, note: "" },
+];
+
+const seoChecklist = [
+  { label: "Schema.org Structured Data (LocalBusiness, Course, TouristAttraction)", ok: true },
+  { label: "OpenGraph & Twitter Card Tags", ok: true },
+  { label: "NAP Consistency (Name, Address, Phone)", ok: true },
+  { label: "Google Business Profile Terhubung", ok: true },
+  { label: "AI-Quotable Content Block (untuk GEO / SGE)", ok: true },
+  { label: "Core Web Vitals — Largest Contentful Paint", ok: false },
+];
+
+/* ------------------------------------------------------------------ */
+/*  SHARED UI ATOMS                                                    */
+/* ------------------------------------------------------------------ */
+
+function GlowButton({ children, onClick, variant = "gold", className = "", type = "button" }) {
+  const base = "inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 whitespace-nowrap";
+  const styles = variant === "gold"
+    ? "bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A] shadow-[0_0_0_rgba(198,161,91,0)] hover:shadow-[0_0_25px_rgba(198,161,91,0.55)] hover:-translate-y-0.5"
+    : "bg-transparent border border-[#3a3940] text-[#E2E8F0] hover:border-[#C6A15B] hover:text-[#C6A15B] hover:shadow-[0_0_15px_rgba(198,161,91,0.25)]";
+  return (
+    <button type={type} onClick={onClick} className={base + " " + styles + " " + className}>
+      {children}
+    </button>
+  );
+}
+
+function SectionLabel({ icon: Icon, children }) {
+  return (
+    <div className="inline-flex items-center gap-2 text-[#C6A15B] text-xs font-semibold tracking-[0.2em] uppercase mb-3">
+      <Icon className="w-4 h-4" />
+      {children}
+    </div>
+  );
+}
+
+function StarRow({ rating, size = "w-4 h-4" }) {
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star key={i} className={size + (i <= rating ? " fill-[#C6A15B] text-[#C6A15B]" : " text-[#3a3940]")} />
+      ))}
+    </div>
+  );
+}
+
+function Reveal({ children, className = "", delay = 0 }) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.15 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{ transitionDelay: delay + "ms" }}
+      className={(visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8") + " transition-all duration-700 ease-out " + className}
+    >
+      {children}
+    </div>
+  );
+}
+
+const GLOBAL_ANIMATION_CSS = `
+@keyframes kenburns {
+  0% { transform: scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: scale(1.12); opacity: 1; }
+}
+.animate-kenburns { animation: kenburns 6s ease-out forwards; }
+@keyframes whatsappPulse {
+  0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55); }
+  100% { box-shadow: 0 0 0 18px rgba(37, 211, 102, 0); }
+}
+.animate-whatsapp-pulse { animation: whatsappPulse 2s ease-out infinite; }
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float-slow { animation: floatSlow 3.5s ease-in-out infinite; }
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5) translateY(0); }
+  50% { opacity: 1; transform: scale(1) translateY(-10px); }
+}
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.text-shimmer {
+  background-image: linear-gradient(90deg, #9C7A3C 0%, #E2E8F0 15%, #F5E7C8 30%, #C6A15B 45%, #9C7A3C 60%, #E2E8F0 75%, #C6A15B 90%, #9C7A3C 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 8s linear infinite;
+}
+.divider-luxury {
+  height: 1px;
+  background-image: linear-gradient(90deg, transparent 0%, #C6A15B 20%, #E2E8F0 50%, #C6A15B 80%, transparent 100%);
+  opacity: 0.6;
+}
+`;
+
+const SPARKLE_POSITIONS = [
+  { top: "12%", left: "8%", size: 14, delay: 0 },
+  { top: "22%", left: "42%", size: 10, delay: 0.8 },
+  { top: "8%", left: "68%", size: 16, delay: 1.6 },
+  { top: "48%", left: "22%", size: 8, delay: 2.4 },
+  { top: "62%", left: "58%", size: 12, delay: 0.4 },
+  { top: "35%", left: "85%", size: 10, delay: 1.2 },
+  { top: "78%", left: "12%", size: 14, delay: 2.0 },
+  { top: "70%", left: "78%", size: 8, delay: 3.0 },
+];
+
+function SparkleField() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden hidden sm:block" aria-hidden="true">
+      {SPARKLE_POSITIONS.map((s, i) => (
+        <Sparkles
+          key={i}
+          className="absolute text-[#C6A15B]"
+          style={{ top: s.top, left: s.left, width: s.size, height: s.size, animation: "twinkle " + (3 + s.delay) + "s ease-in-out " + s.delay + "s infinite" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function LangCurrencySwitchers({ lang, setLang, currency, setCurrency }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={lang}
+        onChange={(e) => setLang(e.target.value)}
+        className="bg-[#1f1e24] border border-[#3a3940] text-[#E2E8F0] text-xs rounded-full px-2 py-1.5 outline-none focus:border-[#C6A15B] cursor-pointer"
+      >
+        {LANGUAGES.map((l) => (
+          <option key={l.code} value={l.code}>{l.flag} {l.code.toUpperCase()}</option>
+        ))}
+      </select>
+      <select
+        value={currency}
+        onChange={(e) => setCurrency(e.target.value)}
+        className="bg-[#1f1e24] border border-[#3a3940] text-[#E2E8F0] text-xs rounded-full px-2 py-1.5 outline-none focus:border-[#C6A15B] cursor-pointer"
+      >
+        {CURRENCIES.map((c) => (
+          <option key={c.code} value={c.code}>{c.code}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ModeSwitcher({ mode, setMode }) {
+  return (
+    <div className="flex items-center bg-[#1f1e24] border border-[#3a3940] rounded-full p-1 text-xs font-semibold">
+      <button
+        onClick={() => setMode("customer")}
+        className={"flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 " + (mode === "customer" ? "bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}
+      >
+        <Eye className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Customer</span>
+      </button>
+      <button
+        onClick={() => setMode("admin")}
+        className={"flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all duration-300 " + (mode === "admin" ? "bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}
+      >
+        <LayoutDashboard className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Admin CMS</span>
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — HEADER                                                  */
+/* ------------------------------------------------------------------ */
+
+function CustomerHeader({ page, setPage, lang, setLang, currency, setCurrency, mode, setMode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const t = (k, v) => tr(lang, k, v);
+
+  const goHome = (anchor) => {
+    setPage("home");
+    if (anchor) setTimeout(() => document.getElementById(anchor)?.scrollIntoView({ behavior: "smooth" }), 60);
+    setMenuOpen(false);
+  };
+
+  return (
+    <header className="sticky top-0 z-40 backdrop-blur-md bg-[#16151A]/85 border-b border-[#2a2930]">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 h-16 flex items-center justify-between">
+        <button onClick={() => setPage("home")} className="flex items-center gap-2">
+          <img src={LOGO_SRC} alt="Family Silver Class Bali" className="w-9 h-9 rounded-full object-cover border border-[#3a3940]" />
+          <span className="text-[#E2E8F0] font-semibold tracking-wide text-sm sm:text-base">
+            Family Silver Class <span className="text-shimmer font-bold">Bali</span>
+          </span>
+        </button>
+
+        <nav className="hidden md:flex items-center gap-8 text-sm text-[#9a99a1]">
+          {page !== "home" && <button onClick={() => goHome()} className="hover:text-[#E2E8F0] transition-colors">{t("nav_home")}</button>}
+          <button onClick={() => setPage("packages")} className={"hover:text-[#E2E8F0] transition-colors " + (page === "packages" ? "text-[#C6A15B]" : "")}>{t("nav_packages")}</button>
+          <button onClick={() => goHome("reviews")} className="hover:text-[#E2E8F0] transition-colors">{t("nav_reviews")}</button>
+          <button onClick={() => goHome("location")} className="hover:text-[#E2E8F0] transition-colors">{t("nav_location")}</button>
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex">
+            <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
+          </div>
+          <ModeSwitcher mode={mode} setMode={setMode} />
+          <button className="md:hidden text-[#E2E8F0]" onClick={() => setMenuOpen((v) => !v)}>
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+      {menuOpen && (
+        <div className="md:hidden px-5 pb-4 flex flex-col gap-3 text-sm text-[#9a99a1] border-t border-[#2a2930]">
+          <div className="sm:hidden pt-3">
+            <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
+          </div>
+          {page !== "home" && <button onClick={() => goHome()} className="text-left">{t("nav_home")}</button>}
+          <button onClick={() => { setPage("packages"); setMenuOpen(false); }} className="text-left">{t("nav_packages")}</button>
+          <button onClick={() => goHome("reviews")} className="text-left">{t("nav_reviews")}</button>
+          <button onClick={() => goHome("location")} className="text-left">{t("nav_location")}</button>
+        </div>
+      )}
+    </header>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — HERO                                                    */
+/* ------------------------------------------------------------------ */
+
+function Hero({ content, lang, onBook, onExplore, heroPhotos }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [slide, setSlide] = useState(0);
+  const badges = [
+    { icon: Gem, label: t("badge_silver") },
+    { icon: Award, label: t("badge_cert") },
+    { icon: Users, label: t("badge_beginner") },
+  ];
+
+  useEffect(() => {
+    if (!heroPhotos || heroPhotos.length < 2) return;
+    const id = setInterval(() => setSlide((s) => (s + 1) % heroPhotos.length), 5000);
+    return () => clearInterval(id);
+  }, [heroPhotos]);
+
+  return (
+    <section className="relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(198,161,91,0.18),transparent_55%),radial-gradient(ellipse_at_bottom_left,rgba(226,232,240,0.10),transparent_50%),radial-gradient(ellipse_at_bottom_right,rgba(156,122,60,0.12),transparent_45%)]" />
+      <SparkleField />
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-8 pt-16 pb-28 sm:pt-24 sm:pb-28 grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          {content.promo && (
+            <div className="mb-6 inline-flex items-center gap-2 bg-[#1f1e24] border border-[#C6A15B]/30 text-[#C6A15B] text-xs sm:text-sm px-4 py-2 rounded-full">
+              {content.promo}
+            </div>
+          )}
+          <SectionLabel icon={MapPin}>{t("location_tag")}</SectionLabel>
+          <h1 className="text-shimmer text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight">
+            {content.headline}
+          </h1>
+          <p className="mt-5 text-[#9a99a1] max-w-2xl text-base sm:text-lg leading-relaxed">
+            {content.subheadline}
+          </p>
+
+          <div className="mt-8 flex flex-wrap gap-4">
+            <GlowButton onClick={onBook}><Sparkles className="w-4 h-4" /> {t("cta_book")}</GlowButton>
+            <GlowButton variant="ghost" onClick={onExplore}>{t("cta_explore")}</GlowButton>
+          </div>
+
+          <div className="mt-10 flex flex-wrap gap-3">
+            {badges.map((b, i) => (
+              <div key={i} className="flex items-center gap-2 bg-[#1f1e24]/80 border border-[#2a2930] hover:border-[#C6A15B]/50 transition-colors rounded-xl px-4 py-2.5 text-xs sm:text-sm text-[#E2E8F0]">
+                <b.icon className="w-4 h-4 text-[#C6A15B]" />
+                {b.label}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative mt-10 lg:mt-0">
+          <div className="relative rounded-2xl lg:rounded-3xl overflow-hidden border border-[#2a2930] shadow-2xl aspect-[4/3] sm:aspect-[16/10] lg:aspect-[4/5]">
+            <img key={slide} src={photo(heroPhotos[slide])} alt="Family Silver Class Bali workshop" className="absolute inset-0 w-full h-full object-cover animate-kenburns" />
+            <div className="absolute bottom-3 right-3 flex gap-1.5">
+              {heroPhotos.map((_, i) => (
+                <span key={i} className={"w-1.5 h-1.5 rounded-full transition-colors " + (i === slide ? "bg-[#C6A15B]" : "bg-white/40")} />
+              ))}
+            </div>
+          </div>
+          <div className="hidden lg:block absolute -bottom-8 -left-8 w-40 h-40 rounded-2xl overflow-hidden border-4 border-[#16151A] shadow-[0_0_30px_rgba(198,161,91,0.35)] rotate-[-4deg]">
+            <img src={photo(heroPhotos[(slide + 1) % heroPhotos.length])} alt="Silver jewelry making detail" className="w-full h-full object-cover" />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — GALLERY                                                 */
+/* ------------------------------------------------------------------ */
+
+function Gallery({ lang, galleryPhotos }) {
+  const t = (k) => tr(lang, k);
+  const [openIdx, setOpenIdx] = useState(null);
+  const imgs = galleryPhotos;
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("gallery_title")}</h2>
+      <p className="text-[#9a99a1] mb-8 max-w-xl">{t("gallery_subtitle")}</p>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {imgs.map((name, i) => (
+          <button
+            key={name}
+            onClick={() => setOpenIdx(i)}
+            className="group relative aspect-square rounded-xl overflow-hidden border border-[#2a2930] hover:border-[#C6A15B]/60 transition-colors"
+          >
+            <img src={photo(name)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          </button>
+        ))}
+      </div>
+
+      {openIdx !== null && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6" onClick={() => setOpenIdx(null)}>
+          <button className="absolute top-5 right-5 text-white/80 hover:text-white" onClick={() => setOpenIdx(null)}>
+            <X className="w-7 h-7" />
+          </button>
+          <button
+            className="absolute left-4 sm:left-8 text-white/80 hover:text-white"
+            onClick={(e) => { e.stopPropagation(); setOpenIdx((openIdx - 1 + imgs.length) % imgs.length); }}
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <img src={photo(imgs[openIdx])} alt="" className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+          <button
+            className="absolute right-4 sm:right-8 text-white/80 hover:text-white"
+            onClick={(e) => { e.stopPropagation(); setOpenIdx((openIdx + 1) % imgs.length); }}
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — BOOKING MODAL (collects details, sends to WhatsApp)      */
+/* ------------------------------------------------------------------ */
+
+function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAreas, slots, jewelryLabel, participants, extraGrams, selectedExtraNames, totalPrice, onConfirm }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [form, setForm] = useState({ name: "", email: "", whatsapp: "", date: "", slot: "", meetOption: "studio", pickupAreaId: "", pickupNote: "" });
+  const [error, setError] = useState(false);
+
+  if (!open) return null;
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const field = (v) => (e) => setForm((f) => ({ ...f, ...v(e.target.value) }));
+
+  const pickupAreaObj = (pickupAreas || []).find((a) => a.id === form.pickupAreaId);
+  const pickupFee = form.meetOption === "pickup" && pickupAreaObj ? pickupAreaObj.price : 0;
+  const grandTotal = totalPrice + pickupFee;
+
+  const handleSubmit = () => {
+    if (!form.name || !form.email || !form.whatsapp || !form.date || !form.slot || (form.meetOption === "pickup" && (!form.pickupAreaId || !form.pickupNote))) {
+      setError(true);
+      return;
+    }
+    setError(false);
+    const meetingLine =
+      form.meetOption === "pickup" && pickupAreaObj
+        ? t("meeting_pickup") + " — " + pickupAreaObj.name + " (+" + formatPrice(pickupAreaObj.price, currency) + ")"
+        : t("meeting_studio");
+    const message =
+      "*New Booking - Family Silver Class Bali*\n" +
+      "Name: " + form.name + "\n" +
+      "Email: " + form.email + "\n" +
+      "WhatsApp: " + form.whatsapp + "\n" +
+      "Package: " + jewelryLabel + " (" + participants + " pax, +" + extraGrams + "g extra silver)\n" +
+      (selectedExtraNames && selectedExtraNames.length > 0 ? "Extras: " + selectedExtraNames.join(", ") + "\n" : "") +
+      "Date: " + form.date + "\n" +
+      "Time Slot: " + form.slot + "\n" +
+      "Meeting: " + meetingLine + "\n" +
+      (form.meetOption === "pickup" ? "Pickup Location: " + form.pickupNote + "\n" : "") +
+      "Estimated Total: " + formatPrice(grandTotal, currency);
+    const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
+    const url = "https://wa.me/" + digits + "?text=" + encodeURIComponent(message);
+    window.open(url, "_blank", "noopener,noreferrer");
+    onConfirm({ name: form.name, date: form.date, pax: participants });
+    setForm({ name: "", email: "", whatsapp: "", date: "", slot: "", meetOption: "studio", pickupAreaId: "", pickupNote: "" });
+    onClose();
+  };
+
+  const inputClass = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">{t("booking_modal_title")}</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="bg-[#16151A] border border-[#2a2930] rounded-lg p-3 mb-4 text-xs text-[#9a99a1] space-y-1">
+          <div className="flex justify-between">
+            <span>{jewelryLabel} · {participants}p · +{extraGrams}g</span>
+            <span className="text-[#E2E8F0]">{formatPrice(totalPrice, currency)}</span>
+          </div>
+          {pickupFee > 0 && (
+            <div className="flex justify-between">
+              <span>{t("pickup_fee_label")} ({pickupAreaObj.name})</span>
+              <span className="text-[#E2E8F0]">+{formatPrice(pickupFee, currency)}</span>
+            </div>
+          )}
+          {pickupFee > 0 && (
+            <div className="flex justify-between border-t border-[#2a2930] pt-1 font-semibold">
+              <span className="text-[#C6A15B]">{t("total_label")}</span>
+              <span className="text-[#E2E8F0]">{formatPrice(grandTotal, currency)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <input placeholder={t("form_name")} value={form.name} onChange={field((v) => ({ name: v }))} className={inputClass} />
+          <input type="email" placeholder={t("form_email")} value={form.email} onChange={field((v) => ({ email: v }))} className={inputClass} />
+          <input type="tel" placeholder={t("form_whatsapp")} value={form.whatsapp} onChange={field((v) => ({ whatsapp: v }))} className={inputClass} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1 block">{t("form_date")}</label>
+              <input type="date" min={todayStr} value={form.date} onChange={field((v) => ({ date: v }))} className={inputClass} />
+            </div>
+            <div>
+              <label className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1 block">{t("form_slot")}</label>
+              <select value={form.slot} onChange={field((v) => ({ slot: v }))} className={inputClass}>
+                <option value="">{t("form_slot_placeholder")}</option>
+                {slots.map((s) => (<option key={s} value={s}>{s}</option>))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1.5 block">{t("meeting_label")}</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setForm((f) => ({ ...f, meetOption: "studio" }))}
+                className={"rounded-lg px-3 py-2.5 text-sm border transition-colors " + (form.meetOption === "studio" ? "border-[#C6A15B] bg-[#C6A15B]/10 text-[#E2E8F0]" : "border-[#2a2930] text-[#9a99a1]")}
+              >
+                {t("meeting_studio")}
+              </button>
+              <button
+                onClick={() => setForm((f) => ({ ...f, meetOption: "pickup" }))}
+                className={"rounded-lg px-3 py-2.5 text-sm border transition-colors " + (form.meetOption === "pickup" ? "border-[#C6A15B] bg-[#C6A15B]/10 text-[#E2E8F0]" : "border-[#2a2930] text-[#9a99a1]")}
+              >
+                {t("meeting_pickup")}
+              </button>
+            </div>
+          </div>
+
+          {form.meetOption === "pickup" && (
+            <>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1 block">{t("pickup_area_label")}</label>
+                <select value={form.pickupAreaId} onChange={field((v) => ({ pickupAreaId: v }))} className={inputClass}>
+                  <option value="">{t("pickup_area_placeholder")}</option>
+                  {(pickupAreas || []).map((a) => (
+                    <option key={a.id} value={a.id}>{a.name}{a.price > 0 ? " (+" + formatPrice(a.price, currency) + ")" : ""}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1 block">{t("pickup_note_label")}</label>
+                <textarea
+                  value={form.pickupNote}
+                  onChange={field((v) => ({ pickupNote: v }))}
+                  placeholder={t("pickup_note_placeholder")}
+                  rows={2}
+                  className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors"
+                />
+              </div>
+            </>
+          )}
+        </div>
+
+        {error && <p className="text-xs text-red-400 mt-3">{t("form_required")}</p>}
+
+        <GlowButton className="w-full mt-5" onClick={handleSubmit}>
+          <Send className="w-4 h-4" /> {t("form_submit")}
+        </GlowButton>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — PACKAGE CALCULATOR                                      */
+/* ------------------------------------------------------------------ */
+
+function PackageCalculator({ catalog, perGram, extras, settings, lang, currency, typeId, onBookingConfirm }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [participants, setParticipants] = useState(2);
+  const [extraGrams, setExtraGrams] = useState(0);
+  const [selectedExtras, setSelectedExtras] = useState([]);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [toast, setToast] = useState(false);
+
+  const type = catalog.find((x) => x.id === typeId) || catalog[0];
+  const Icon = iconFor(type.iconKey);
+  const basePrice = type.basePrice;
+  const perPerson = basePrice + extraGrams * perGram;
+  const extrasTotal = extras.filter((ex) => selectedExtras.includes(ex.id)).reduce((s, ex) => s + ex.price, 0);
+  const total = perPerson * participants + extrasTotal;
+  const totalGrams = (type.baseGrams + extraGrams) * participants;
+
+  const toggleExtra = (id) => {
+    setSelectedExtras((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  return (
+    <section className="py-8 sm:py-12">
+      <SectionLabel icon={Coins}>{t("calc_label")}</SectionLabel>
+      <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("calc_title")}</h2>
+      <p className="text-[#9a99a1] mb-10 max-w-xl">{t("calc_subtitle")}</p>
+
+      <div className="grid lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-6 sm:p-8 space-y-8">
+          <div>
+            <label className="text-sm text-[#E2E8F0] font-semibold mb-3 block">{t("jewelry_type_label")}</label>
+            <div className="flex items-center gap-3 rounded-xl py-4 px-4 border border-[#C6A15B] bg-[#C6A15B]/10">
+              <Icon className="w-5 h-5 text-[#C6A15B]" />
+              <span className="text-sm font-medium text-[#E2E8F0]">{pkgName(type, lang)}</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-[#E2E8F0] font-semibold mb-3 block">{t("participants_label")}</label>
+            <div className="flex items-center gap-4">
+              <button onClick={() => setParticipants((p) => Math.max(1, p - 1))} className="w-10 h-10 rounded-full border border-[#3a3940] text-[#E2E8F0] flex items-center justify-center hover:border-[#C6A15B] hover:text-[#C6A15B] transition-colors">
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="text-2xl font-bold text-[#E2E8F0] w-10 text-center">{participants}</span>
+              <button onClick={() => setParticipants((p) => Math.min(10, p + 1))} className="w-10 h-10 rounded-full border border-[#3a3940] text-[#E2E8F0] flex items-center justify-center hover:border-[#C6A15B] hover:text-[#C6A15B] transition-colors">
+                <Plus className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-[#9a99a1]">{t("participants_suffix")}</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm text-[#E2E8F0] font-semibold">{t("extra_grams_label")}</label>
+              <span className="text-sm text-[#C6A15B] font-semibold">+{extraGrams}g</span>
+            </div>
+            <input type="range" min={0} max={15} value={extraGrams} onChange={(e) => setExtraGrams(Number(e.target.value))} className="w-full accent-[#C6A15B]" />
+            <div className="flex justify-between text-[11px] text-[#6b6a72] mt-1">
+              <span>0g</span>
+              <span>15g</span>
+            </div>
+            <p className="text-xs text-[#6b6a72] mt-2">
+              {t("includes_base", { grams: type.baseGrams, type: pkgName(type, lang).toLowerCase() })}
+            </p>
+          </div>
+
+          {extras.length > 0 && (
+            <div>
+              <label className="text-sm text-[#E2E8F0] font-semibold mb-3 block">{t("extras_label")}</label>
+              <div className="space-y-2">
+                {extras.map((ex) => (
+                  <button
+                    key={ex.id}
+                    onClick={() => toggleExtra(ex.id)}
+                    className={"w-full flex items-center justify-between rounded-lg px-4 py-3 border transition-colors " + (selectedExtras.includes(ex.id) ? "border-[#C6A15B] bg-[#C6A15B]/10" : "border-[#2a2930] hover:border-[#3a3940]")}
+                  >
+                    <span className="flex items-center gap-2 text-sm text-[#E2E8F0]">
+                      <CheckCircle2 className={"w-4 h-4 " + (selectedExtras.includes(ex.id) ? "text-[#C6A15B]" : "text-[#3a3940]")} />
+                      {ex.name}
+                    </span>
+                    <span className="text-xs text-[#9a99a1]">+{formatPrice(ex.price, currency)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-2 bg-gradient-to-br from-[#1c1b21] to-[#1f1e24] border border-[#C6A15B]/30 rounded-2xl p-6 sm:p-8 flex flex-col justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[#9a99a1] mb-1">{t("total_label")}</p>
+            <p className="text-3xl sm:text-4xl font-bold text-[#E2E8F0]">{formatPrice(total, currency)}</p>
+
+            <div className="mt-6 space-y-2.5 text-sm">
+              <div className="flex justify-between text-[#9a99a1]">
+                <span>{t("base_price_label")}</span>
+                <span className="text-[#E2E8F0]">{formatPrice(basePrice, currency)}</span>
+              </div>
+              <div className="flex justify-between text-[#9a99a1]">
+                <span>{t("extra_price_label")} {extraGrams}g</span>
+                <span className="text-[#E2E8F0]">{formatPrice(extraGrams * perGram, currency)}</span>
+              </div>
+              <div className="flex justify-between text-[#9a99a1]">
+                <span>{t("participants_row_label")}</span>
+                <span className="text-[#E2E8F0]">× {participants}</span>
+              </div>
+              {extrasTotal > 0 && (
+                <div className="flex justify-between text-[#9a99a1]">
+                  <span>{t("extras_price_label")}</span>
+                  <span className="text-[#E2E8F0]">{formatPrice(extrasTotal, currency)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-[#9a99a1] border-t border-[#2a2930] pt-2.5">
+                <span>{t("total_grams_label")}</span>
+                <span className="text-[#E2E8F0]">{totalGrams}g</span>
+              </div>
+            </div>
+          </div>
+
+          <GlowButton className="w-full mt-8" onClick={() => setBookingOpen(true)}>
+            <Sparkles className="w-4 h-4" /> {t("book_now")} — {formatPrice(total, currency)}
+          </GlowButton>
+        </div>
+      </div>
+
+      <BookingModal
+        open={bookingOpen}
+        onClose={() => setBookingOpen(false)}
+        lang={lang}
+        currency={currency}
+        whatsappNumber={settings.whatsappNumber}
+        pickupAreas={settings.pickupAreas}
+        slots={type.slots && type.slots.length ? type.slots : DEFAULT_SLOTS}
+        jewelryLabel={pkgName(type, lang)}
+        participants={participants}
+        extraGrams={extraGrams}
+        selectedExtraNames={extras.filter((ex) => selectedExtras.includes(ex.id)).map((ex) => ex.name)}
+        totalPrice={total}
+        onConfirm={(data) => {
+          onBookingConfirm(data);
+          setToast(true);
+          setTimeout(() => setToast(false), 3500);
+        }}
+      />
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[70] bg-[#1c1b21] border border-green-500/40 text-green-400 text-sm px-4 py-3 rounded-lg flex items-center gap-2 shadow-lg max-w-xs">
+          <CheckCircle2 className="w-4 h-4 shrink-0" /> {t("booking_success")}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — PACKAGE DETAIL MODAL (includes, excludes, directions)   */
+/* ------------------------------------------------------------------ */
+
+function PackageDetailModal({ open, onClose, lang, name, pkgContent, directions, photos, onSelect }) {
+  const t = (k, v) => tr(lang, k, v);
+  if (!open || !pkgContent) return null;
+
+  const includesList = (pkgContent.includes || "").split("\n").map((s) => s.trim()).filter(Boolean);
+  const excludesList = (pkgContent.excludes || "").split("\n").map((s) => s.trim()).filter(Boolean);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-lg bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-6 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">{name}</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+
+        {photos && photos.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto mb-5 pb-1">
+            {photos.map((p, i) => (
+              <img key={i} src={photo(p)} alt="" className="w-24 h-24 rounded-lg object-cover shrink-0 border border-[#2a2930]" />
+            ))}
+          </div>
+        )}
+
+        <p className="text-sm text-[#c7c6cc] leading-relaxed mb-5">{pkgContent.description}</p>
+
+        <div className="mb-5">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#C6A15B] mb-2">{t("whats_included")}</h4>
+          <ul className="space-y-1.5">
+            {includesList.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#c7c6cc]">
+                <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" /> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mb-5">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#9a99a1] mb-2">{t("pkg_excludes_title")}</h4>
+          <ul className="space-y-1.5">
+            {excludesList.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-[#9a99a1]">
+                <X className="w-4 h-4 text-red-400/70 shrink-0 mt-0.5" /> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mb-6 bg-[#16151A] border border-[#2a2930] rounded-lg p-3.5">
+          <h4 className="text-xs font-semibold uppercase tracking-wider text-[#C6A15B] mb-1.5 flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5" /> {t("pkg_directions_title")}
+          </h4>
+          <p className="text-xs text-[#9a99a1] leading-relaxed">{directions}</p>
+        </div>
+
+        <GlowButton className="w-full" onClick={onSelect}>{t("select_customize")}</GlowButton>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — PACKAGES PAGE                                           */
+/* ------------------------------------------------------------------ */
+
+function PackagesPage({ lang, currency, catalog, perGram, extras, settings, onBookingConfirm, content }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [detailPkg, setDetailPkg] = useState(null);
+  const [calcTypeId, setCalcTypeId] = useState(null);
+  const c = content[lang];
+  const detailType = catalog.find((x) => x.id === detailPkg);
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <SectionLabel icon={Coins}>{t("packages_eyebrow")}</SectionLabel>
+      <h1 className="text-3xl sm:text-5xl font-bold text-[#E2E8F0] mb-3 max-w-2xl">{t("packages_title")}</h1>
+      <p className="text-[#9a99a1] max-w-2xl mb-12">{t("packages_subtitle")}</p>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {catalog.map((jt) => {
+          const Icon = iconFor(jt.iconKey);
+          const name = pkgName(jt, lang);
+          const photoName = jt.coverPhoto;
+          return (
+            <div key={jt.id} className="rounded-2xl overflow-hidden border border-[#2a2930] transition-all duration-300 flex flex-col">
+              {photoName ? (
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img src={photo(photoName)} alt={name} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="aspect-[4/3] bg-gradient-to-br from-[#2a2930] to-[#1c1b21] flex items-center justify-center">
+                  <Icon className="w-14 h-14 text-[#C6A15B]/50" />
+                </div>
+              )}
+              <div className="bg-[#1c1b21] p-5 flex flex-col flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon className="w-4 h-4 text-[#C6A15B]" />
+                  <h3 className="text-[#E2E8F0] font-semibold">{name}</h3>
+                </div>
+                <p className="text-2xl font-bold text-[#E2E8F0] mb-1">{formatPrice(jt.basePrice, currency)}</p>
+                <p className="text-xs text-[#9a99a1] mb-3 flex-1">
+                  {t("includes_base", { grams: jt.baseGrams, type: name.toLowerCase() })}
+                </p>
+                <button
+                  onClick={() => setDetailPkg(jt.id)}
+                  className="text-xs text-[#C6A15B] hover:underline mb-3 text-left"
+                >
+                  {t("view_details")}
+                </button>
+                <GlowButton className="w-full" onClick={() => setCalcTypeId(jt.id)}>
+                  {t("select_customize")}
+                </GlowButton>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <PackageDetailModal
+        open={!!detailPkg}
+        onClose={() => setDetailPkg(null)}
+        lang={lang}
+        name={detailType ? pkgName(detailType, lang) : ""}
+        pkgContent={c.packages[detailPkg || "ring"]}
+        directions={c.directions}
+        photos={detailType ? [detailType.coverPhoto, ...(detailType.gallery || [])].filter(Boolean) : []}
+        onSelect={() => {
+          setDetailPkg(null);
+          setCalcTypeId(detailPkg);
+        }}
+      />
+
+      {calcTypeId && (
+        <div className="fixed inset-0 z-[55] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={() => setCalcTypeId(null)}>
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+          <div className="relative w-full max-w-3xl bg-[#16151A] border border-[#2a2930] rounded-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setCalcTypeId(null)} className="absolute top-4 right-4 sm:top-5 sm:right-5 text-[#9a99a1] hover:text-[#E2E8F0] z-10">
+              <X className="w-5 h-5" />
+            </button>
+            <div className="p-5 sm:p-8">
+              <PackageCalculator catalog={catalog} perGram={perGram} extras={extras} lang={lang} currency={currency} typeId={calcTypeId} settings={settings} onBookingConfirm={onBookingConfirm} />
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — OUR PACKAGES (HOMEPAGE TEASER)                          */
+/* ------------------------------------------------------------------ */
+
+function PackagesTeaser({ lang, currency, catalog, onExplore }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [itemsPerView, setItemsPerView] = useState(3);
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    const calc = () => {
+      const w = window.innerWidth;
+      setItemsPerView(w < 640 ? 1 : w < 1024 ? 2 : 3);
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+
+  const maxSlide = Math.max(0, catalog.length - itemsPerView);
+
+  useEffect(() => {
+    setSlide((s) => Math.min(s, maxSlide));
+  }, [maxSlide]);
+
+  useEffect(() => {
+    if (maxSlide === 0) return;
+    const id = setInterval(() => setSlide((s) => (s + 1 > maxSlide ? 0 : s + 1)), 4000);
+    return () => clearInterval(id);
+  }, [maxSlide]);
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-10">
+          <div>
+            <SectionLabel icon={Coins}>{t("packages_eyebrow")}</SectionLabel>
+            <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("packages_title")}</h2>
+            <p className="text-[#9a99a1] max-w-xl">{t("packages_subtitle")}</p>
+          </div>
+          <GlowButton variant="ghost" onClick={onExplore}>{t("cta_explore")}</GlowButton>
+        </div>
+      </Reveal>
+
+      <Reveal>
+        <div className="overflow-hidden">
+          <div
+            className="flex transition-transform duration-700 ease-out"
+            style={{ transform: "translateX(-" + slide * (100 / itemsPerView) + "%)" }}
+          >
+            {catalog.map((jt) => {
+              const Icon = iconFor(jt.iconKey);
+              const name = pkgName(jt, lang);
+              const photoName = jt.coverPhoto;
+              return (
+                <div key={jt.id} className="shrink-0 px-2 sm:px-3" style={{ flex: "0 0 " + 100 / itemsPerView + "%" }}>
+                  <div className="h-full rounded-2xl overflow-hidden border border-[#2a2930] hover:border-[#C6A15B]/50 transition-all duration-300 flex flex-col">
+                    {photoName ? (
+                      <div className="aspect-[4/3] overflow-hidden">
+                        <img src={photo(photoName)} alt={name} className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="aspect-[4/3] bg-gradient-to-br from-[#2a2930] to-[#1c1b21] flex items-center justify-center">
+                        <Icon className="w-14 h-14 text-[#C6A15B]/50" />
+                      </div>
+                    )}
+                    <div className="bg-[#1c1b21] p-5 flex flex-col flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon className="w-4 h-4 text-[#C6A15B]" />
+                        <h3 className="text-[#E2E8F0] font-semibold">{name}</h3>
+                      </div>
+                      <p className="text-2xl font-bold text-[#E2E8F0] mb-1">{formatPrice(jt.basePrice, currency)}</p>
+                      <p className="text-xs text-[#9a99a1] mb-4 flex-1">
+                        {t("includes_base", { grams: jt.baseGrams, type: name.toLowerCase() })}
+                      </p>
+                      <GlowButton className="w-full" onClick={onExplore}>{t("select_customize")}</GlowButton>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Reveal>
+
+      {maxSlide > 0 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          {Array.from({ length: maxSlide + 1 }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setSlide(i)}
+              aria-label={"Go to slide " + (i + 1)}
+              className={"h-2 rounded-full transition-all " + (i === slide ? "w-6 bg-[#C6A15B]" : "w-2 bg-[#3a3940]")}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — AS SEEN IN STRIP                                        */
+/* ------------------------------------------------------------------ */
+
+function AsSeenInStrip({ lang, badges }) {
+  const t = (k) => tr(lang, k);
+  if (!badges || badges.length === 0) return null;
+  return (
+    <Reveal>
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-8">
+        <div className="divider-luxury" />
+        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 py-5">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-[#6b6a72] mr-2">{t("asseenin_label")}</span>
+          {badges.map((b, i) => (
+            <span key={i} className="text-xs sm:text-sm text-[#9a99a1] flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 fill-[#C6A15B] text-[#C6A15B]" /> {b}
+            </span>
+          ))}
+        </div>
+        <div className="divider-luxury" />
+      </div>
+    </Reveal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — STEP BY STEP (SILVER LEARNING STAGE)                    */
+/* ------------------------------------------------------------------ */
+
+function StepsSection({ lang, steps }) {
+  const t = (k, v) => tr(lang, k, v);
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <SectionLabel icon={Hammer}>{t("steps_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("steps_title")}</h2>
+        <p className="text-[#9a99a1] mb-10 max-w-xl">{t("steps_subtitle")}</p>
+      </Reveal>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {steps.map((s, i) => (
+          <Reveal key={i} delay={i * 100}>
+            <div className="h-full bg-[#1c1b21] border border-[#2a2930] hover:border-[#C6A15B]/50 transition-colors rounded-2xl overflow-hidden">
+              {s.photo && (
+                <div className="relative aspect-video">
+                  <img src={photo(s.photo)} alt={s.title} className="w-full h-full object-cover" />
+                  <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A] font-bold text-sm flex items-center justify-center shadow-lg">
+                    {i + 1}
+                  </div>
+                </div>
+              )}
+              <div className="p-5">
+                {!s.photo && (
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] text-[#16151A] font-bold text-sm flex items-center justify-center mb-4">
+                    {i + 1}
+                  </div>
+                )}
+                <h3 className="text-[#E2E8F0] font-semibold mb-1.5">{s.title}</h3>
+                <p className="text-xs text-[#9a99a1] leading-relaxed">{s.description}</p>
+              </div>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — WHY CHOOSE US                                           */
+/* ------------------------------------------------------------------ */
+
+function WhyUsSection({ lang, items }) {
+  const t = (k, v) => tr(lang, k, v);
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <SectionLabel icon={ShieldCheck}>{t("whyus_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("whyus_title")}</h2>
+        <p className="text-[#9a99a1] mb-10 max-w-xl">{t("whyus_subtitle")}</p>
+      </Reveal>
+      <div className="grid sm:grid-cols-3 gap-5">
+        {items.map((item, i) => {
+          const Icon = iconFor(item.icon);
+          return (
+            <Reveal key={i} delay={i * 100}>
+              <div className="h-full bg-gradient-to-br from-[#1c1b21] to-[#1f1e24] border border-[#2a2930] hover:border-[#C6A15B]/50 hover:-translate-y-1 transition-all duration-300 rounded-2xl p-6">
+                <Icon className="w-7 h-7 text-[#C6A15B] mb-4" />
+                <h3 className="text-[#E2E8F0] font-semibold mb-2">{item.title}</h3>
+                <p className="text-sm text-[#9a99a1] leading-relaxed">{item.description}</p>
+              </div>
+            </Reveal>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — ABOUT / HERITAGE                                        */
+/* ------------------------------------------------------------------ */
+
+function AboutSection({ lang, about }) {
+  const t = (k, v) => tr(lang, k, v);
+  return (
+    <section className="max-w-5xl mx-auto px-5 sm:px-8 py-16 sm:py-20 text-center">
+      <Reveal className="flex flex-col items-center">
+        <SectionLabel icon={Heart}>{t("about_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-6 max-w-2xl">{t("about_title")}</h2>
+        <p className="text-[#9a99a1] text-base sm:text-lg leading-relaxed max-w-2xl">{about}</p>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — TEAM / INSTRUCTORS                                      */
+/* ------------------------------------------------------------------ */
+
+function TeamSection({ lang, instructors }) {
+  const t = (k, v) => tr(lang, k, v);
+  if (!instructors || instructors.length === 0) return null;
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <SectionLabel icon={Users}>{t("team_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("team_title")}</h2>
+        <p className="text-[#9a99a1] mb-10 max-w-xl">{t("team_subtitle")}</p>
+      </Reveal>
+      <div className="grid sm:grid-cols-3 gap-6">
+        {instructors.map((m, i) => (
+          <Reveal key={m.id} delay={i * 100}>
+            <div className="text-center group">
+              <div className="aspect-square rounded-2xl overflow-hidden border border-[#2a2930] group-hover:border-[#C6A15B]/50 transition-colors mb-4">
+                <img src={photo(m.photo)} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <h3 className="text-[#E2E8F0] font-semibold">{m.name}</h3>
+              <p className="text-xs text-[#C6A15B] mt-0.5">{m.role}</p>
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — GUEST GALLERY (MADE BY OUR GUESTS)                       */
+/* ------------------------------------------------------------------ */
+
+function GuestGallery({ lang, photos }) {
+  const t = (k) => tr(lang, k);
+  const [openIdx, setOpenIdx] = useState(null);
+  if (!photos || photos.length === 0) return null;
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("guestgallery_title")}</h2>
+        <p className="text-[#9a99a1] mb-8 max-w-xl">{t("guestgallery_subtitle")}</p>
+      </Reveal>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {photos.map((name, i) => (
+          <Reveal key={name} delay={i * 80}>
+            <button
+              onClick={() => setOpenIdx(i)}
+              className="group relative aspect-square w-full rounded-xl overflow-hidden border border-[#2a2930] hover:border-[#C6A15B]/60 transition-colors"
+            >
+              <img src={photo(name)} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+            </button>
+          </Reveal>
+        ))}
+      </div>
+
+      {openIdx !== null && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-6" onClick={() => setOpenIdx(null)}>
+          <button className="absolute top-5 right-5 text-white/80 hover:text-white" onClick={() => setOpenIdx(null)}>
+            <X className="w-7 h-7" />
+          </button>
+          <button
+            className="absolute left-4 sm:left-8 text-white/80 hover:text-white"
+            onClick={(e) => { e.stopPropagation(); setOpenIdx((openIdx - 1 + photos.length) % photos.length); }}
+          >
+            <ChevronLeft className="w-8 h-8" />
+          </button>
+          <img src={photo(photos[openIdx])} alt="" className="max-h-[85vh] max-w-[90vw] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+          <button
+            className="absolute right-4 sm:right-8 text-white/80 hover:text-white"
+            onClick={(e) => { e.stopPropagation(); setOpenIdx((openIdx + 1) % photos.length); }}
+          >
+            <ChevronRight className="w-8 h-8" />
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — FAQ                                                     */
+/* ------------------------------------------------------------------ */
+
+function FaqSection({ lang, faq }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [openIdx, setOpenIdx] = useState(0);
+  if (!faq || faq.length === 0) return null;
+
+  return (
+    <section className="max-w-4xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <SectionLabel icon={MessageSquare}>{t("faq_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("faq_title")}</h2>
+        <p className="text-[#9a99a1] mb-10 max-w-xl">{t("faq_subtitle")}</p>
+      </Reveal>
+      <div className="space-y-3">
+        {faq.map((item, i) => {
+          const open = openIdx === i;
+          return (
+            <Reveal key={i} delay={i * 60}>
+              <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setOpenIdx(open ? -1 : i)}
+                  className="w-full flex items-center justify-between px-5 py-4 text-left"
+                >
+                  <span className="text-sm sm:text-base font-medium text-[#E2E8F0] pr-4">{item.q}</span>
+                  {open ? <ChevronUp className="w-4 h-4 text-[#C6A15B] shrink-0" /> : <ChevronDown className="w-4 h-4 text-[#9a99a1] shrink-0" />}
+                </button>
+                <div className={"grid transition-all duration-300 ease-out " + (open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0")}>
+                  <div className="overflow-hidden">
+                    <p className="px-5 pb-4 text-sm text-[#9a99a1] leading-relaxed">{item.a}</p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — ANIMATED STAT COUNTERS                                  */
+/* ------------------------------------------------------------------ */
+
+function useCountUp(target, decimals, active) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const duration = 1500;
+    const start = performance.now();
+    let raf;
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(target * eased);
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active, target]);
+  return value.toFixed(decimals || 0);
+}
+
+function StatItem({ stat, active }) {
+  const display = useCountUp(stat.value, stat.decimals, active);
+  return (
+    <div className="text-center">
+      <div className="text-shimmer text-3xl sm:text-5xl font-bold">{display}{stat.suffix}</div>
+      <p className="text-xs sm:text-sm text-[#9a99a1] mt-2">{stat.label}</p>
+    </div>
+  );
+}
+
+function StatsSection({ lang, stats }) {
+  const t = (k) => tr(lang, k);
+  const [active, setActive] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) { setActive(true); obs.disconnect(); }
+    }, { threshold: 0.3 });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  if (!stats || stats.length === 0) return null;
+  return (
+    <section ref={ref} className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <SectionLabel icon={TrendingUp}>{t("stats_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-10">{t("stats_title")}</h2>
+      </Reveal>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 bg-[#1c1b21] border border-[#2a2930] rounded-2xl py-10 px-6">
+        {stats.map((s, i) => (<StatItem key={i} stat={s} active={active} />))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — PROMO COUNTDOWN                                         */
+/* ------------------------------------------------------------------ */
+
+function getCountdownParts(deadline) {
+  const diff = new Date(deadline).getTime() - Date.now();
+  if (isNaN(diff) || diff <= 0) return null;
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    seconds: Math.floor((diff / 1000) % 60),
+  };
+}
+
+function PromoCountdown({ lang, deadline }) {
+  const t = (k) => tr(lang, k);
+  const [parts, setParts] = useState(() => getCountdownParts(deadline));
+
+  useEffect(() => {
+    setParts(getCountdownParts(deadline));
+    const id = setInterval(() => setParts(getCountdownParts(deadline)), 1000);
+    return () => clearInterval(id);
+  }, [deadline]);
+
+  if (!parts) return null;
+  const units = [
+    { value: parts.days, label: t("countdown_days") },
+    { value: parts.hours, label: t("countdown_hours") },
+    { value: parts.minutes, label: t("countdown_minutes") },
+    { value: parts.seconds, label: t("countdown_seconds") },
+  ];
+  return (
+    <Reveal>
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 -mt-4 mb-4">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-8 bg-gradient-to-r from-[#1c1b21] to-[#1f1e24] border border-[#C6A15B]/25 rounded-2xl py-5 px-6">
+          <span className="text-xs sm:text-sm font-semibold text-[#C6A15B] uppercase tracking-wider">{t("countdown_label")}</span>
+          <div className="flex items-center gap-3 sm:gap-5">
+            {units.map((u, i) => (
+              <div key={i} className="text-center">
+                <div className="text-xl sm:text-3xl font-bold text-[#E2E8F0] tabular-nums">{String(u.value).padStart(2, "0")}</div>
+                <div className="text-[10px] text-[#6b6a72] uppercase tracking-wide">{u.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Reveal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — SCROLL PROGRESS BAR                                     */
+/* ------------------------------------------------------------------ */
+
+function ScrollProgressBar() {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 h-[3px] bg-transparent">
+      <div className="h-full bg-gradient-to-r from-[#C6A15B] to-[#9C7A3C] transition-[width] duration-150" style={{ width: progress + "%" }} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — BEFORE / AFTER SLIDER                                   */
+/* ------------------------------------------------------------------ */
+
+function BeforeAfterSlider({ lang, beforePhoto, afterPhoto }) {
+  const t = (k) => tr(lang, k);
+  const [pos, setPos] = useState(50);
+  const [dragging, setDragging] = useState(false);
+  const ref = useRef(null);
+
+  const updateFromClientX = (clientX) => {
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const pct = ((clientX - rect.left) / rect.width) * 100;
+    setPos(Math.min(100, Math.max(0, pct)));
+  };
+
+  useEffect(() => {
+    if (!dragging) return;
+    const onMove = (e) => updateFromClientX(e.touches ? e.touches[0].clientX : e.clientX);
+    const onUp = () => setDragging(false);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("touchmove", onMove);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("touchend", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("touchend", onUp);
+    };
+  }, [dragging]);
+
+  if (!beforePhoto || !afterPhoto) return null;
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <SectionLabel icon={Sparkles}>{t("beforeafter_eyebrow")}</SectionLabel>
+        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("beforeafter_title")}</h2>
+        <p className="text-[#9a99a1] mb-10 max-w-xl">{t("beforeafter_subtitle")}</p>
+      </Reveal>
+      <Reveal>
+        <div
+          ref={ref}
+          className="relative select-none rounded-2xl overflow-hidden border border-[#2a2930] aspect-[16/9] max-w-4xl mx-auto cursor-ew-resize"
+          onMouseDown={(e) => { setDragging(true); updateFromClientX(e.clientX); }}
+          onTouchStart={(e) => { setDragging(true); updateFromClientX(e.touches[0].clientX); }}
+        >
+          <img src={photo(afterPhoto)} alt="After" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+          <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">{t("label_after")}</div>
+          <img
+            src={photo(beforePhoto)}
+            alt="Before"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ clipPath: "inset(0 " + (100 - pos) + "% 0 0)" }}
+            draggable={false}
+          />
+          <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full" style={{ opacity: pos > 15 ? 1 : 0 }}>{t("label_before")}</div>
+          <div className="absolute top-0 bottom-0 w-1 bg-[#C6A15B]" style={{ left: pos + "%", transform: "translateX(-50%)" }}>
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#C6A15B] flex items-center justify-center shadow-lg">
+              <ChevronLeft className="w-3.5 h-3.5 text-[#16151A] -mr-1" />
+              <ChevronRight className="w-3.5 h-3.5 text-[#16151A] -ml-1" />
+            </div>
+          </div>
+        </div>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — INSTAGRAM-STYLE GALLERY STRIP                           */
+/* ------------------------------------------------------------------ */
+
+function InstagramStrip({ lang, photos, handle }) {
+  const t = (k, v) => tr(lang, k, v);
+  if (!photos || photos.length === 0) return null;
+  const cleanHandle = (handle || "").replace(/^@/, "");
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <Reveal>
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+          <div>
+            <SectionLabel icon={Star}>{t("instagram_eyebrow")}</SectionLabel>
+            <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("instagram_title")}</h2>
+            <p className="text-[#9a99a1] max-w-xl">{t("instagram_subtitle")}</p>
+          </div>
+          {cleanHandle && (
+            <a href={"https://instagram.com/" + cleanHandle} target="_blank" rel="noreferrer">
+              <GlowButton variant="ghost"><ExternalLink className="w-4 h-4" /> {t("instagram_follow", { handle: "@" + cleanHandle })}</GlowButton>
+            </a>
+          )}
+        </div>
+      </Reveal>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
+        {photos.map((name, i) => (
+          <Reveal key={name} delay={i * 60}>
+            <div className="group relative aspect-square rounded-lg overflow-hidden border border-[#2a2930]">
+              <img src={photo(name)} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+            </div>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — FLOATING WHATSAPP BUTTON                                */
+/* ------------------------------------------------------------------ */
+
+function FloatingWhatsApp({ whatsappNumber }) {
+  const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 320);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  if (!digits) return null;
+  return (
+    <a
+      href={"https://wa.me/" + digits}
+      target="_blank"
+      rel="noreferrer"
+      className={"fixed bottom-24 sm:bottom-5 left-5 z-40 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg animate-whatsapp-pulse hover:scale-105 transition-all duration-300 " + (show ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none sm:opacity-100 sm:scale-100 sm:pointer-events-auto")}
+      aria-label="Chat on WhatsApp"
+    >
+      <MessageSquare className="w-6 h-6 text-white fill-white" />
+    </a>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — STICKY MOBILE BOOK BAR                                  */
+/* ------------------------------------------------------------------ */
+
+function StickyBookBar({ lang, onBook }) {
+  const t = (k) => tr(lang, k);
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShow(window.scrollY > 480);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  return (
+    <div className={"sm:hidden fixed bottom-0 left-0 right-0 z-40 p-3 bg-[#16151A]/95 backdrop-blur-md border-t border-[#2a2930] transition-transform duration-300 " + (show ? "translate-y-0" : "translate-y-full")}>
+      <GlowButton className="w-full" onClick={onBook}>
+        <Sparkles className="w-4 h-4" /> {t("cta_book")}
+      </GlowButton>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — MAPS & REVIEWS                                          */
+/* ------------------------------------------------------------------ */
+
+function MapsAndReviews({ reviews, lang, googleRating, googleReviewCount, mapAddress }) {
+  const t = (k, v) => tr(lang, k, v);
+  const [idx, setIdx] = useState(0);
+
+  const next = () => setIdx((i) => (i + 1) % reviews.length);
+  const prev = () => setIdx((i) => (i - 1 + reviews.length) % reviews.length);
+
+  useEffect(() => {
+    if (!reviews || reviews.length < 2) return;
+    const id = setInterval(() => setIdx((i) => (i + 1) % reviews.length), 6000);
+    return () => clearInterval(id);
+  }, [reviews]);
+
+  const r = reviews[idx];
+
+  return (
+    <section id="location" className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-24">
+      <SectionLabel icon={MapPin}>{t("visit_us_label")}</SectionLabel>
+      <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-10">{t("visit_us_title")}</h2>
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="relative rounded-2xl overflow-hidden border border-[#2a2930] h-72 sm:h-96 bg-[#1c1b21]">
+          <iframe
+            title="Family Silver Class Bali map"
+            src={"https://www.google.com/maps?q=" + encodeURIComponent(mapAddress) + "&output=embed"}
+            className="absolute inset-0 w-full h-full grayscale-[30%] contrast-[1.1]"
+            style={{ border: 0 }}
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+          <div className="absolute bottom-4 left-4 right-4 bg-[#16151A]/90 backdrop-blur border border-[#2a2930] rounded-xl p-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[#E2E8F0] text-sm font-semibold">Family Silver Class Bali</p>
+              <p className="text-[#9a99a1] text-xs">Jl. Padma Utara, Legian, Kuta, Bali</p>
+            </div>
+            <a href={"https://www.google.com/maps/search/" + encodeURIComponent(mapAddress)} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-[#C6A15B] hover:underline whitespace-nowrap">
+              {t("open_maps")} <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
+        </div>
+
+        <div id="reviews" className="bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-6 sm:p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="text-4xl font-bold text-[#E2E8F0]">{googleRating.toFixed(1)}</div>
+            <div>
+              <StarRow rating={Math.round(googleRating)} />
+              <p className="text-xs text-[#9a99a1] mt-1">{t("verified_reviews", { count: googleReviewCount })}</p>
+            </div>
+          </div>
+
+          <div className="border-t border-[#2a2930] pt-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full flex items-center justify-center text-[#16151A] font-bold text-sm shrink-0" style={{ backgroundColor: r.avatarColor }}>
+                  {r.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#E2E8F0]">{r.name}</p>
+                  <p className="text-xs text-[#9a99a1]">{r.country} · {r.date}</p>
+                </div>
+              </div>
+              <StarRow rating={r.rating} size="w-3.5 h-3.5" />
+            </div>
+            <p className="text-sm text-[#c7c6cc] mt-3 leading-relaxed">"{r.text}"</p>
+            {r.reply && (
+              <div className="mt-3 bg-[#16151A] border border-[#2a2930] rounded-lg p-3 text-xs text-[#9a99a1]">
+                <span className="text-[#C6A15B] font-semibold">Owner reply: </span>
+                {r.reply}
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-4">
+              <button onClick={prev} className="p-2 rounded-full border border-[#2a2930] hover:border-[#C6A15B] text-[#9a99a1] hover:text-[#C6A15B] transition-colors">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs text-[#6b6a72]">{idx + 1} / {reviews.length}</span>
+              <button onClick={next} className="p-2 rounded-full border border-[#2a2930] hover:border-[#C6A15B] text-[#9a99a1] hover:text-[#C6A15B] transition-colors">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — SEO / GEO DRAWER                                        */
+/* ------------------------------------------------------------------ */
+
+function SEODrawer({ content, catalog, lang, currency }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("jsonld");
+  const c = content[lang];
+  const curr = CURRENCIES.find((x) => x.code === currency) || CURRENCIES[0];
+  const prices = catalog.map((p) => p.basePrice);
+  const minPrice = Math.min(...prices);
+  const maxPrice = Math.max(...prices);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "LocalBusiness", name: "Family Silver Class Bali", inLanguage: lang,
+        image: "https://familysilverclassbali.com/og-image.jpg",
+        address: { "@type": "PostalAddress", streetAddress: "Jl. Padma Utara", addressLocality: "Legian, Kuta", addressRegion: "Bali", postalCode: "80361", addressCountry: "ID" },
+        geo: { "@type": "GeoCoordinates", latitude: -8.7011, longitude: 115.1697 },
+        telephone: "+62-812-0000-0000",
+        priceRange: currency + " " + Math.round(minPrice * curr.rate) + " - " + Math.round(maxPrice * curr.rate),
+        aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "870" },
+      },
+      {
+        "@type": "Course", name: "Silver Jewelry Making Class", description: c.description,
+        provider: { "@type": "Organization", name: "Family Silver Class Bali" },
+        offers: { "@type": "Offer", price: Math.round(minPrice * curr.rate), priceCurrency: currency, availability: "https://schema.org/InStock" },
+      },
+      {
+        "@type": "TouristAttraction", name: "Family Silver Class Bali",
+        description: "Authentic silversmith workshop experience in Legian, Bali.",
+        touristType: ["Families", "Couples", "Solo Travelers"],
+      },
+    ],
+  };
+
+  const ogTags = [
+    ["og:title", c.headline], ["og:description", c.subheadline], ["og:type", "business.business"],
+    ["og:locale", lang], ["og:site_name", "Family Silver Class Bali"],
+    ["og:image", "https://familysilverclassbali.com/og-image.jpg"], ["twitter:card", "summary_large_image"],
+  ];
+
+  const aiText =
+    "Family Silver Class Bali is a hands-on silver jewelry making workshop located in Legian, Bali, " +
+    "rated 4.9/5 from over 870 verified Google reviews. Guests craft genuine 925 sterling silver rings, " +
+    "pendants, or bangles (5–7g included) alongside local Balinese silversmiths in sessions lasting " +
+    "approximately 2 hours. Packages start from " + formatPrice(minPrice, currency) + " per person and include " +
+    "a certificate of completion. The class is beginner-friendly and suitable for couples, families, and solo travelers.";
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="fixed bottom-24 sm:bottom-5 right-5 z-40 flex items-center gap-2 bg-[#1c1b21] border border-[#3a3940] hover:border-[#C6A15B] text-[#9a99a1] hover:text-[#C6A15B] text-xs px-4 py-3 rounded-full shadow-lg transition-colors">
+        <Code2 className="w-4 h-4" /> <span className="hidden sm:inline">Inspect SEO & AI Metadata</span><span className="sm:hidden">SEO</span>
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
+          <div className="relative w-full sm:w-[480px] h-full bg-[#16151A] border-l border-[#2a2930] p-6 overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-[#E2E8F0] font-semibold flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#C6A15B]" /> SEO & AI Search (GEO)
+              </h3>
+              <button onClick={() => setOpen(false)} className="text-[#9a99a1] hover:text-[#E2E8F0]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex gap-1 bg-[#1c1b21] p-1 rounded-lg mb-4 text-xs">
+              {[["jsonld", "JSON-LD"], ["og", "OpenGraph"], ["ai", "AI-Quotable"]].map(([id, label]) => (
+                <button key={id} onClick={() => setTab(id)} className={"flex-1 py-2 rounded-md font-semibold transition-colors " + (tab === id ? "bg-[#C6A15B] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}>
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {tab === "jsonld" && (
+              <pre className="text-[11px] leading-relaxed text-[#9a99a1] bg-[#1c1b21] border border-[#2a2930] rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-words">
+{JSON.stringify(jsonLd, null, 2)}
+              </pre>
+            )}
+            {tab === "og" && (
+              <div className="space-y-2">
+                {ogTags.map(([k, v]) => (
+                  <div key={k} className="bg-[#1c1b21] border border-[#2a2930] rounded-lg p-3">
+                    <p className="text-[10px] uppercase tracking-wider text-[#C6A15B]">{k}</p>
+                    <p className="text-xs text-[#E2E8F0] mt-0.5 break-words">{v}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {tab === "ai" && (
+              <div className="bg-[#1c1b21] border border-[#2a2930] rounded-lg p-4">
+                <p className="text-[10px] uppercase tracking-wider text-[#C6A15B] mb-2">Structured for Perplexity / Google AI Overviews</p>
+                <p className="text-xs text-[#c7c6cc] leading-relaxed">{aiText}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER — FOOTER                                                  */
+/* ------------------------------------------------------------------ */
+
+function Footer({ lang }) {
+  const t = (k) => tr(lang, k);
+  return (
+    <footer className="mt-10">
+      <div className="divider-luxury" />
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6b6a72]">
+        <span>© 2026 {t("footer_rights")}</span>
+        <span>{t("footer_prototype")}</span>
+      </div>
+    </footer>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOMER PAGE (assembled)                                          */
+/* ------------------------------------------------------------------ */
+
+function CustomerPage({ page, setPage, mode, setMode, lang, setLang, currency, setCurrency, content, catalog, perGram, extras, reviews, settings, galleryPhotos, guestGalleryPhotos, instructors, asSeenIn, heroPhotos, instagramPhotos, setReservations }) {
+  const goPackages = () => setPage("packages");
+
+  const onBookingConfirm = (data) => {
+    setReservations((prev) => [
+      { id: "RSV-" + Date.now(), name: data.name, date: data.date, pax: data.pax, status: "Pending" },
+      ...prev,
+    ]);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#16151A]">
+      {page === "home" && <ScrollProgressBar />}
+      <CustomerHeader page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} mode={mode} setMode={setMode} />
+
+      {page === "home" ? (
+        <>
+          <Hero content={content[lang]} lang={lang} onBook={goPackages} onExplore={goPackages} heroPhotos={heroPhotos} />
+          <PromoCountdown lang={lang} deadline={settings.promoDeadline} />
+          <AsSeenInStrip lang={lang} badges={asSeenIn} />
+          <PackagesTeaser lang={lang} currency={currency} catalog={catalog} onExplore={goPackages} />
+          <StepsSection lang={lang} steps={content[lang].steps} />
+          <WhyUsSection lang={lang} items={content[lang].whyUs} />
+          <StatsSection lang={lang} stats={content[lang].stats} />
+          <Gallery lang={lang} galleryPhotos={galleryPhotos} />
+          <GuestGallery lang={lang} photos={guestGalleryPhotos} />
+          <BeforeAfterSlider lang={lang} beforePhoto={settings.beforeAfter && settings.beforeAfter.beforePhoto} afterPhoto={settings.beforeAfter && settings.beforeAfter.afterPhoto} />
+          <AboutSection lang={lang} about={content[lang].about} />
+          <TeamSection lang={lang} instructors={instructors} />
+          <MapsAndReviews reviews={reviews} lang={lang} googleRating={settings.googleRating} googleReviewCount={settings.googleReviewCount} mapAddress={settings.mapAddress} />
+          <InstagramStrip lang={lang} photos={instagramPhotos} handle={settings.instagramHandle} />
+          <FaqSection lang={lang} faq={content[lang].faq} />
+          <StickyBookBar lang={lang} onBook={goPackages} />
+        </>
+      ) : (
+        <PackagesPage lang={lang} currency={currency} catalog={catalog} perGram={perGram} extras={extras} settings={settings} onBookingConfirm={onBookingConfirm} content={content} />
+      )}
+
+      <Footer lang={lang} />
+      <SEODrawer content={content} catalog={catalog} lang={lang} currency={currency} />
+      <FloatingWhatsApp whatsappNumber={settings.whatsappNumber} />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — SIDEBAR                                                    */
+/* ------------------------------------------------------------------ */
+
+function AdminSidebar({ tab, setTab }) {
+  const items = [
+    { id: "content", label: "Content Editor", icon: Edit3 },
+    { id: "packages", label: "Packages", icon: Gem },
+    { id: "homepage", label: "Homepage", icon: Sparkles },
+    { id: "reviews", label: "Reviews & Maps", icon: MessageSquare },
+    { id: "reservations", label: "Reservations", icon: Calendar },
+    { id: "akunting", label: "Akunting", icon: Coins },
+    { id: "seo", label: "SEO & AI Health", icon: BarChart3 },
+  ];
+  return (
+    <aside className="hidden lg:flex flex-col w-64 shrink-0 border-r border-[#2a2930] p-5 gap-1">
+      <div className="flex items-center gap-2 mb-6 px-2">
+        <LayoutDashboard className="w-5 h-5 text-[#C6A15B]" />
+        <span className="text-[#E2E8F0] font-semibold text-sm">Admin CMS</span>
+      </div>
+      {items.map((it) => (
+        <button key={it.id} onClick={() => setTab(it.id)} className={"flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left " + (tab === it.id ? "bg-[#C6A15B]/10 text-[#C6A15B] border border-[#C6A15B]/30" : "text-[#9a99a1] hover:bg-[#1c1b21] hover:text-[#E2E8F0] border border-transparent")}>
+          <it.icon className="w-4 h-4" /> {it.label}
+        </button>
+      ))}
+    </aside>
+  );
+}
+
+function AdminMobileTabs({ tab, setTab }) {
+  const items = [
+    { id: "content", label: "Content", icon: Edit3 },
+    { id: "packages", label: "Packages", icon: Gem },
+    { id: "homepage", label: "Homepage", icon: Sparkles },
+    { id: "reviews", label: "Reviews", icon: MessageSquare },
+    { id: "reservations", label: "Bookings", icon: Calendar },
+    { id: "akunting", label: "Akunting", icon: Coins },
+    { id: "seo", label: "SEO", icon: BarChart3 },
+  ];
+  return (
+    <div className="lg:hidden flex overflow-x-auto gap-2 px-4 py-3 border-b border-[#2a2930]">
+      {items.map((it) => (
+        <button key={it.id} onClick={() => setTab(it.id)} className={"flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs whitespace-nowrap border transition-colors " + (tab === it.id ? "bg-[#C6A15B] text-[#16151A] border-[#C6A15B]" : "border-[#3a3940] text-[#9a99a1]")}>
+          <it.icon className="w-3.5 h-3.5" /> {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — PACKAGES MANAGER (add / remove / price catalog)            */
+/* ------------------------------------------------------------------ */
+
+function PhotoPickerGrid({ selected, multiple, onToggle }) {
+  const isSelected = (name) => (multiple ? selected.includes(name) : selected === name);
+  return (
+    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-64 overflow-y-auto p-1 bg-[#16151A] border border-[#2a2930] rounded-lg">
+      {!multiple && (
+        <button
+          onClick={() => onToggle(null)}
+          className={"relative aspect-square rounded-lg overflow-hidden border-2 flex items-center justify-center bg-[#1c1b21] " + (selected === null ? "border-[#C6A15B]" : "border-transparent")}
+        >
+          <X className="w-5 h-5 text-[#6b6a72]" />
+        </button>
+      )}
+      {ALL_PHOTOS.map((name) => (
+        <button
+          key={name}
+          onClick={() => onToggle(name)}
+          className={"relative aspect-square rounded-lg overflow-hidden border-2 " + (isSelected(name) ? "border-[#C6A15B]" : "border-transparent")}
+        >
+          <img src={photo(name)} alt="" className="w-full h-full object-cover" />
+          {isSelected(name) && (
+            <div className="absolute inset-0 bg-[#C6A15B]/40 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            </div>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PackageEditModal({ pkg, onClose, content, setContent, catalog, setCatalog, lang }) {
+  const [editLang, setEditLang] = useState(lang);
+  const [coverPhoto, setCoverPhoto] = useState(pkg.coverPhoto || null);
+  const [gallery, setGallery] = useState(pkg.gallery || []);
+  const [slotsText, setSlotsText] = useState((pkg.slots && pkg.slots.length ? pkg.slots : DEFAULT_SLOTS).join(", "));
+  const [pkgDraft, setPkgDraft] = useState(content[editLang].packages[pkg.id] || { description: "", includes: "", excludes: "" });
+
+  const handleLangChange = (newLang) => {
+    setEditLang(newLang);
+    setPkgDraft(content[newLang].packages[pkg.id] || { description: "", includes: "", excludes: "" });
+  };
+
+  const toggleGallery = (name) => {
+    setGallery((g) => (g.includes(name) ? g.filter((n) => n !== name) : [...g, name]));
+  };
+
+  const handleSave = () => {
+    const slots = slotsText.split(",").map((s) => s.trim()).filter(Boolean);
+    setCatalog(catalog.map((c) => (c.id === pkg.id ? { ...c, coverPhoto, gallery, slots: slots.length ? slots : DEFAULT_SLOTS } : c)));
+    setContent({ ...content, [editLang]: { ...content[editLang], packages: { ...content[editLang].packages, [pkg.id]: pkgDraft } } });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-2xl bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-center justify-between rounded-t-2xl">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">Edit Paket: {pkgName(pkg, editLang)}</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+
+        <div className="p-5 space-y-6">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider">Bahasa untuk deskripsi & include/exclude</span>
+            <select value={editLang} onChange={(e) => handleLangChange(e.target.value)} className="bg-[#16151A] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-full px-3 py-1.5 outline-none focus:border-[#C6A15B]">
+              {LANGUAGES.map((l) => (<option key={l.code} value={l.code}>{l.flag} {l.label}</option>))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Foto Depan (Cover)</label>
+            <PhotoPickerGrid selected={coverPhoto} multiple={false} onToggle={setCoverPhoto} />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Galeri Paket (pilih beberapa foto)</label>
+            <PhotoPickerGrid selected={gallery} multiple={true} onToggle={toggleGallery} />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Deskripsi Paket</label>
+            <textarea value={pkgDraft.description} onChange={(e) => setPkgDraft({ ...pkgDraft, description: e.target.value })} rows={2} className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Termasuk (Include) — satu baris per poin</label>
+            <textarea value={pkgDraft.includes} onChange={(e) => setPkgDraft({ ...pkgDraft, includes: e.target.value })} rows={4} className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Tidak Termasuk (Exclude) — satu baris per poin</label>
+            <textarea value={pkgDraft.excludes} onChange={(e) => setPkgDraft({ ...pkgDraft, excludes: e.target.value })} rows={2} className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors" />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Slot Waktu Booking (khusus paket ini, pisahkan dengan koma)</label>
+            <input value={slotsText} onChange={(e) => setSlotsText(e.target.value)} placeholder="09:00, 11:00, 13:00, 15:00, 17:00" className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors" />
+          </div>
+
+          <GlowButton className="w-full" onClick={handleSave}><Check className="w-4 h-4" /> Simpan Semua Perubahan</GlowButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PackagesManager({ catalog, setCatalog, perGram, setPerGram, content, setContent, lang }) {
+  const [form, setForm] = useState({ name: "", basePrice: "", baseGrams: "", iconKey: "gem" });
+  const [editingId, setEditingId] = useState(null);
+
+  const updateField = (id, key, value) => {
+    setCatalog(catalog.map((c) => (c.id === id ? { ...c, [key]: value } : c)));
+  };
+
+  const removePackage = (id) => {
+    setCatalog(catalog.filter((c) => c.id !== id));
+  };
+
+  const addPackage = () => {
+    if (!form.name || !form.basePrice || !form.baseGrams) return;
+    const id = "custom-" + Date.now();
+    setCatalog([
+      ...catalog,
+      { id, custom: true, name: form.name, iconKey: form.iconKey, basePrice: Number(form.basePrice), baseGrams: Number(form.baseGrams), coverPhoto: null, gallery: [], slots: [...DEFAULT_SLOTS] },
+    ]);
+    setContent((prev) => {
+      const next = {};
+      LANGUAGES.forEach((l) => {
+        next[l.code] = { ...prev[l.code], packages: { ...prev[l.code].packages, [id]: { description: "", includes: "", excludes: "" } } };
+      });
+      return next;
+    });
+    setForm({ name: "", basePrice: "", baseGrams: "", iconKey: "gem" });
+  };
+
+  return (
+    <div className="max-w-4xl">
+      <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+        <Gem className="w-4 h-4 text-[#C6A15B]" /> Katalog Paket
+      </h2>
+      <p className="text-xs text-[#9a99a1] mb-5">Kelola paket yang tampil di halaman Packages, termasuk menambah jenis perhiasan baru.</p>
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-6">
+        <div className="grid grid-cols-[auto_1.3fr_1fr_0.7fr_auto_auto] gap-3 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72]">
+          <span></span><span>Nama</span><span>Harga Dasar (Rp)</span><span>Gram Dasar</span><span></span><span></span>
+        </div>
+        {catalog.map((c) => {
+          const Icon = iconFor(c.iconKey);
+          return (
+            <div key={c.id} className="grid grid-cols-[auto_1.3fr_1fr_0.7fr_auto_auto] gap-3 px-4 py-3 border-t border-[#2a2930] items-center">
+              <Icon className="w-4 h-4 text-[#C6A15B]" />
+              <span className="text-sm text-[#E2E8F0]">
+                {pkgName(c, lang)}
+                {!c.custom && <span className="ml-1.5 text-[10px] text-[#6b6a72]">(bawaan)</span>}
+              </span>
+              <input
+                type="number"
+                value={c.basePrice}
+                onChange={(e) => updateField(c.id, "basePrice", Number(e.target.value))}
+                className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-2 py-1.5 text-sm text-[#E2E8F0] w-full"
+              />
+              <input
+                type="number"
+                value={c.baseGrams}
+                onChange={(e) => updateField(c.id, "baseGrams", Number(e.target.value))}
+                className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-2 py-1.5 text-sm text-[#E2E8F0] w-full"
+              />
+              <button onClick={() => setEditingId(c.id)} className="text-[#6b6a72] hover:text-[#C6A15B]" title="Edit foto, galeri, deskripsi & slot">
+                <Edit3 className="w-4 h-4" />
+              </button>
+              {c.custom ? (
+                <button onClick={() => removePackage(c.id)} className="text-[#6b6a72] hover:text-red-400">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              ) : (
+                <span></span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {editingId && (
+        <PackageEditModal
+          key={editingId}
+          pkg={catalog.find((c) => c.id === editingId)}
+          onClose={() => setEditingId(null)}
+          content={content}
+          setContent={setContent}
+          catalog={catalog}
+          setCatalog={setCatalog}
+          lang={lang}
+        />
+      )}
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-3 mb-6">
+        <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider block">Harga per Gram Tambahan (berlaku untuk semua paket)</label>
+        <div className="flex items-center bg-[#16151A] border border-[#2a2930] focus-within:border-[#C6A15B] rounded-lg px-3 max-w-xs">
+          <span className="text-xs text-[#6b6a72] mr-1">Rp</span>
+          <input type="number" value={perGram} onChange={(e) => setPerGram(Number(e.target.value))} className="w-full bg-transparent outline-none py-2.5 text-sm text-[#E2E8F0]" />
+        </div>
+      </div>
+
+      <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-[#C6A15B]" /> Tambah Paket Baru</h3>
+        <div className="grid sm:grid-cols-2 gap-3 mb-3">
+          <input
+            placeholder="Nama paket (contoh: Anting)"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0]"
+          />
+          <select
+            value={form.iconKey}
+            onChange={(e) => setForm({ ...form, iconKey: e.target.value })}
+            className="bg-[#16151A] border border-[#2a2930] rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] outline-none"
+          >
+            {ICON_OPTIONS.map((o) => (<option key={o.key} value={o.key}>{o.label}</option>))}
+          </select>
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 mb-4">
+          <div className="flex items-center bg-[#16151A] border border-[#2a2930] focus-within:border-[#C6A15B] rounded-lg px-3">
+            <span className="text-xs text-[#6b6a72] mr-1">Rp</span>
+            <input
+              type="number"
+              placeholder="Harga dasar"
+              value={form.basePrice}
+              onChange={(e) => setForm({ ...form, basePrice: e.target.value })}
+              className="w-full bg-transparent outline-none py-2.5 text-sm text-[#E2E8F0]"
+            />
+          </div>
+          <input
+            type="number"
+            placeholder="Gram perak dasar"
+            value={form.baseGrams}
+            onChange={(e) => setForm({ ...form, baseGrams: e.target.value })}
+            className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0]"
+          />
+        </div>
+        <p className="text-[11px] text-[#6b6a72] mb-4">Nama paket ini akan tampil sama di semua bahasa. Setelah ditambahkan, klik ikon pensil pada baris paket untuk mengatur foto, galeri, deskripsi, include/exclude, dan slot waktu.</p>
+        <GlowButton onClick={addPackage}><Plus className="w-4 h-4" /> Tambah Paket</GlowButton>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — CONTENT EDITOR (multi-language)                            */
+/* ------------------------------------------------------------------ */
+
+function ContentEditor({ content, setContent, settings, setSettings, extras, setExtras, galleryPhotos, setGalleryPhotos, lang }) {
+  const [editLang, setEditLang] = useState(lang);
+  const [draft, setDraft] = useState(content[editLang]);
+  const [settingsDraft, setSettingsDraft] = useState({ whatsappNumber: settings.whatsappNumber });
+  const [directionsDraft, setDirectionsDraft] = useState(content[editLang].directions);
+  const [extraForm, setExtraForm] = useState({ name: "", price: "" });
+  const [areaForm, setAreaForm] = useState({ name: "", price: "" });
+  const [galleryPickerOpen, setGalleryPickerOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const removeGalleryPhoto = (name) => setGalleryPhotos(galleryPhotos.filter((p) => p !== name));
+  const toggleGalleryPhoto = (name) => {
+    if (galleryPhotos.includes(name)) removeGalleryPhoto(name);
+    else setGalleryPhotos([...galleryPhotos, name]);
+  };
+
+  const handleLangChange = (newLang) => {
+    setEditLang(newLang);
+    setDraft(content[newLang]);
+    setDirectionsDraft(content[newLang].directions);
+  };
+  const saveContent = () => { setContent({ ...content, [editLang]: draft }); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const saveSettings = () => {
+    setSettings({ ...settings, whatsappNumber: settingsDraft.whatsappNumber.replace(/[^0-9]/g, "") });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+  const saveDirections = () => {
+    setContent({ ...content, [editLang]: { ...content[editLang], directions: directionsDraft } });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+  const addExtra = () => {
+    if (!extraForm.name || !extraForm.price) return;
+    setExtras([...extras, { id: "extra-" + Date.now(), name: extraForm.name, price: Number(extraForm.price) }]);
+    setExtraForm({ name: "", price: "" });
+  };
+  const removeExtra = (id) => setExtras(extras.filter((ex) => ex.id !== id));
+  const addPickupArea = () => {
+    if (!areaForm.name) return;
+    setSettings({ ...settings, pickupAreas: [...(settings.pickupAreas || []), { id: "area-" + Date.now(), name: areaForm.name, price: Number(areaForm.price) || 0 }] });
+    setAreaForm({ name: "", price: "" });
+  };
+  const removePickupArea = (id) => setSettings({ ...settings, pickupAreas: (settings.pickupAreas || []).filter((a) => a.id !== id) });
+
+  const field = (label, key, isTextarea) => (
+    <div>
+      <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">{label}</label>
+      {isTextarea ? (
+        <textarea value={draft[key]} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} rows={3} className="w-full bg-[#1c1b21] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors" />
+      ) : (
+        <input value={draft[key]} onChange={(e) => setDraft({ ...draft, [key]: e.target.value })} className="w-full bg-[#1c1b21] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors" />
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-8 max-w-3xl">
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+          <h2 className="text-lg font-semibold text-[#E2E8F0] flex items-center gap-2">
+            <Edit3 className="w-4 h-4 text-[#C6A15B]" /> Live Content Editor
+          </h2>
+          <select value={editLang} onChange={(e) => handleLangChange(e.target.value)} className="bg-[#1c1b21] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-full px-3 py-1.5 outline-none focus:border-[#C6A15B]">
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>{l.flag} {l.label}</option>
+            ))}
+          </select>
+        </div>
+        <p className="text-xs text-[#9a99a1] mb-5">Konten diedit per bahasa dan langsung tampil di Customer Landing Page sesuai bahasa yang dipilih pengunjung.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          {field("Headline Hero", "headline")}
+          {field("Sub-headline", "subheadline", true)}
+          {field("Pengumuman Promo", "promo")}
+          {field("Deskripsi Kelas", "description", true)}
+          <GlowButton onClick={saveContent}><Check className="w-4 h-4" /> Simpan Konten ({editLang.toUpperCase()})</GlowButton>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+          <FileText className="w-4 h-4 text-[#C6A15B]" /> Galeri Homepage
+        </h2>
+        <p className="text-xs text-[#9a99a1] mb-5">Foto yang tampil di section "Moments from Our Studio" di halaman utama. Klik "x" untuk hapus, atau "Tambah Foto" untuk memilih dari koleksi foto studio.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+            {galleryPhotos.length === 0 && <div className="col-span-full text-center text-sm text-[#6b6a72] py-4">Belum ada foto di galeri.</div>}
+            {galleryPhotos.map((name) => (
+              <div key={name} className="relative aspect-square rounded-lg overflow-hidden group">
+                <img src={photo(name)} alt="" className="w-full h-full object-cover" />
+                <button
+                  onClick={() => removeGalleryPhoto(name)}
+                  className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 rounded-full p-1 text-white transition-colors"
+                  title="Hapus foto"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <GlowButton variant="ghost" onClick={() => setGalleryPickerOpen((v) => !v)}>
+            <Plus className="w-4 h-4" /> {galleryPickerOpen ? "Tutup Pilihan Foto" : "Tambah Foto"}
+          </GlowButton>
+          {galleryPickerOpen && (
+            <div className="mt-4">
+              <PhotoPickerGrid selected={galleryPhotos} multiple={true} onToggle={toggleGalleryPhoto} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#C6A15B]" /> Cara Menuju Lokasi
+        </h2>
+        <p className="text-xs text-[#9a99a1] mb-5">Petunjuk arah ini ditampilkan di detail setiap paket, dalam bahasa {editLang.toUpperCase()}.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <textarea value={directionsDraft} onChange={(e) => setDirectionsDraft(e.target.value)} rows={3} className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors" />
+          <GlowButton onClick={saveDirections}><Check className="w-4 h-4" /> Simpan Petunjuk Arah ({editLang.toUpperCase()})</GlowButton>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+          <Send className="w-4 h-4 text-[#C6A15B]" /> Pengaturan Booking
+        </h2>
+        <p className="text-xs text-[#9a99a1] mb-5">Nomor WhatsApp bisnis penerima pesan booking. Slot waktu diatur per paket di tab "Packages".</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Nomor WhatsApp Bisnis</label>
+            <input
+              value={settingsDraft.whatsappNumber}
+              onChange={(e) => setSettingsDraft({ ...settingsDraft, whatsappNumber: e.target.value })}
+              placeholder="6281234567890"
+              className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors"
+            />
+            <p className="text-[11px] text-[#6b6a72] mt-1.5">Format internasional tanpa "+" atau "0" di depan, contoh: 6281234567890</p>
+          </div>
+          <GlowButton onClick={saveSettings}><Check className="w-4 h-4" /> Simpan Nomor WhatsApp</GlowButton>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#C6A15B]" /> Area Pickup Hotel & Biaya
+        </h2>
+        <p className="text-xs text-[#9a99a1] mb-5">Setiap area penjemputan bisa punya biaya tambahan berbeda. Tamu wajib mengisi catatan lokasi lengkap (link Maps / nama hotel) saat memilih Hotel Pickup.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4">
+          {(settings.pickupAreas || []).length === 0 && <div className="px-4 py-6 text-center text-sm text-[#6b6a72]">Belum ada area pickup.</div>}
+          {(settings.pickupAreas || []).map((a) => (
+            <div key={a.id} className="flex items-center justify-between px-4 py-3 border-b border-[#2a2930] last:border-b-0">
+              <span className="text-sm text-[#E2E8F0]">{a.name}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-[#9a99a1]">{a.price > 0 ? "Rp " + a.price.toLocaleString("id-ID") : "Gratis"}</span>
+                <button onClick={() => removePickupArea(a.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5">
+          <div className="grid sm:grid-cols-2 gap-3 mb-3">
+            <input
+              placeholder="Nama area (contoh: Ubud)"
+              value={areaForm.name}
+              onChange={(e) => setAreaForm({ ...areaForm, name: e.target.value })}
+              className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0]"
+            />
+            <div className="flex items-center bg-[#16151A] border border-[#2a2930] focus-within:border-[#C6A15B] rounded-lg px-3">
+              <span className="text-xs text-[#6b6a72] mr-1">Rp</span>
+              <input
+                type="number"
+                placeholder="Biaya penjemputan (0 = gratis)"
+                value={areaForm.price}
+                onChange={(e) => setAreaForm({ ...areaForm, price: e.target.value })}
+                className="w-full bg-transparent outline-none py-2.5 text-sm text-[#E2E8F0]"
+              />
+            </div>
+          </div>
+          <GlowButton onClick={addPickupArea}><Plus className="w-4 h-4" /> Tambah Area</GlowButton>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+          <Plus className="w-4 h-4 text-[#C6A15B]" /> Extra Tambahan (Add-on)
+        </h2>
+        <p className="text-xs text-[#9a99a1] mb-5">Layanan tambahan opsional yang bisa dipilih pengunjung di kalkulator, di luar paket utama.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4">
+          {extras.length === 0 && <div className="px-4 py-6 text-center text-sm text-[#6b6a72]">Belum ada extra.</div>}
+          {extras.map((ex) => (
+            <div key={ex.id} className="flex items-center justify-between px-4 py-3 border-b border-[#2a2930] last:border-b-0">
+              <span className="text-sm text-[#E2E8F0]">{ex.name}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-[#9a99a1]">Rp {ex.price.toLocaleString("id-ID")}</span>
+                <button onClick={() => removeExtra(ex.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5">
+          <div className="grid sm:grid-cols-2 gap-3 mb-3">
+            <input
+              placeholder="Nama extra (contoh: Ukiran Nama)"
+              value={extraForm.name}
+              onChange={(e) => setExtraForm({ ...extraForm, name: e.target.value })}
+              className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0]"
+            />
+            <div className="flex items-center bg-[#16151A] border border-[#2a2930] focus-within:border-[#C6A15B] rounded-lg px-3">
+              <span className="text-xs text-[#6b6a72] mr-1">Rp</span>
+              <input
+                type="number"
+                placeholder="Harga"
+                value={extraForm.price}
+                onChange={(e) => setExtraForm({ ...extraForm, price: e.target.value })}
+                className="w-full bg-transparent outline-none py-2.5 text-sm text-[#E2E8F0]"
+              />
+            </div>
+          </div>
+          <GlowButton onClick={addExtra}><Plus className="w-4 h-4" /> Tambah Extra</GlowButton>
+        </div>
+      </div>
+
+      {saved && (
+        <div className="fixed bottom-6 right-6 bg-[#1c1b21] border border-green-500/40 text-green-400 text-sm px-4 py-3 rounded-lg flex items-center gap-2 shadow-lg">
+          <CheckCircle2 className="w-4 h-4" /> Perubahan tersimpan
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — REVIEWS MANAGER                                            */
+/* ------------------------------------------------------------------ */
+
+function ReviewsManager({ reviews, setReviews, settings, setSettings }) {
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [newTestimonial, setNewTestimonial] = useState({ name: "", country: "", rating: 5, text: "" });
+  const [statsDraft, setStatsDraft] = useState({ rating: settings.googleRating, count: settings.googleReviewCount });
+  const [statsSaved, setStatsSaved] = useState(false);
+
+  const saveStats = () => {
+    setSettings({
+      ...settings,
+      googleRating: Math.max(0, Math.min(5, Number(statsDraft.rating) || 0)),
+      googleReviewCount: Math.max(0, Number(statsDraft.count) || 0),
+      googleLastUpdated: new Date().toISOString().split("T")[0],
+    });
+    setStatsSaved(true);
+    setTimeout(() => setStatsSaved(false), 2000);
+  };
+
+  const sendReply = (id) => {
+    const text = replyDrafts[id];
+    if (!text) return;
+    setReviews(reviews.map((r) => (r.id === id ? { ...r, reply: text } : r)));
+    setReplyDrafts({ ...replyDrafts, [id]: "" });
+  };
+
+  const addTestimonial = () => {
+    if (!newTestimonial.name || !newTestimonial.text) return;
+    setReviews([{ id: Date.now(), name: newTestimonial.name, country: newTestimonial.country || "Unknown", avatarColor: "#C6A15B", rating: Number(newTestimonial.rating), date: "Baru saja", text: newTestimonial.text, reply: null }, ...reviews]);
+    setNewTestimonial({ name: "", country: "", rating: 5, text: "" });
+  };
+
+  return (
+    <div className="space-y-8 max-w-3xl">
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#C6A15B]" /> Statistik Google Maps
+        </h2>
+        <p className="text-xs text-[#9a99a1] mb-4">
+          Rating dan jumlah ulasan ini ditampilkan di halaman utama. Situs statis ini tidak bisa menarik data Google secara live otomatis (perlu Google Places API + server) — cek Google Maps secara berkala lalu perbarui angkanya di sini.
+        </p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.7)]" />
+            <p className="text-xs text-[#9a99a1]">Terakhir diperbarui: {settings.googleLastUpdated}</p>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Rating (0–5)</label>
+              <input
+                type="number" step="0.1" min="0" max="5"
+                value={statsDraft.rating}
+                onChange={(e) => setStatsDraft({ ...statsDraft, rating: e.target.value })}
+                className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Jumlah Ulasan</label>
+              <input
+                type="number" min="0"
+                value={statsDraft.count}
+                onChange={(e) => setStatsDraft({ ...statsDraft, count: e.target.value })}
+                className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <GlowButton onClick={saveStats}><Check className="w-4 h-4" /> Simpan & Tandai Diperbarui</GlowButton>
+            <GlowButton
+              variant="ghost"
+              onClick={() => window.open("https://www.google.com/maps/search/Family+Silver+Class+Bali+Legian", "_blank", "noopener,noreferrer")}
+            >
+              <ExternalLink className="w-4 h-4" /> Cek di Google Maps
+            </GlowButton>
+            {statsSaved && <span className="text-xs text-green-400">Tersimpan.</span>}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-3">Balas Ulasan Masuk</h3>
+        <div className="space-y-4">
+          {reviews.map((r) => (
+            <div key={r.id} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[#16151A] font-bold text-xs" style={{ backgroundColor: r.avatarColor }}>{r.name.charAt(0)}</div>
+                  <span className="text-sm text-[#E2E8F0] font-medium">{r.name}</span>
+                  <span className="text-xs text-[#6b6a72]">· {r.country}</span>
+                </div>
+                <StarRow rating={r.rating} size="w-3.5 h-3.5" />
+              </div>
+              <p className="text-xs text-[#9a99a1] mb-3">{r.text}</p>
+              {r.reply ? (
+                <div className="bg-[#16151A] border border-[#2a2930] rounded-lg p-3 text-xs text-[#9a99a1]">
+                  <span className="text-[#C6A15B] font-semibold">Balasan Anda: </span>{r.reply}
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input placeholder="Tulis balasan..." value={replyDrafts[r.id] || ""} onChange={(e) => setReplyDrafts({ ...replyDrafts, [r.id]: e.target.value })} className="flex-1 bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2 text-xs text-[#E2E8F0] transition-colors" />
+                  <button onClick={() => sendReply(r.id)} className="px-3 rounded-lg bg-[#C6A15B] text-[#16151A] flex items-center justify-center">
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-3">Tambah Testimoni Manual</h3>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-3">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input placeholder="Nama Tamu" value={newTestimonial.name} onChange={(e) => setNewTestimonial({ ...newTestimonial, name: e.target.value })} className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors" />
+            <input placeholder="Negara / Asal" value={newTestimonial.country} onChange={(e) => setNewTestimonial({ ...newTestimonial, country: e.target.value })} className="bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors" />
+          </div>
+          <textarea placeholder="Isi testimoni..." rows={2} value={newTestimonial.text} onChange={(e) => setNewTestimonial({ ...newTestimonial, text: e.target.value })} className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] resize-none transition-colors" />
+          <div className="flex items-center justify-between">
+            <select value={newTestimonial.rating} onChange={(e) => setNewTestimonial({ ...newTestimonial, rating: e.target.value })} className="bg-[#16151A] border border-[#2a2930] rounded-lg px-3 py-2 text-sm text-[#E2E8F0] outline-none">
+              {[5, 4, 3, 2, 1].map((n) => (<option key={n} value={n}>{n} Bintang</option>))}
+            </select>
+            <GlowButton onClick={addTestimonial}><Plus className="w-4 h-4" /> Tambah</GlowButton>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — RESERVATIONS                                               */
+/* ------------------------------------------------------------------ */
+
+function ReservationsManager({ reservations, setReservations }) {
+  const cycleStatus = (id) => setReservations(reservations.map((r) => (r.id === id ? { ...r, status: r.status === "Confirmed" ? "Pending" : "Confirmed" } : r)));
+  const removeReservation = (id) => setReservations(reservations.filter((r) => r.id !== id));
+
+  return (
+    <div className="max-w-4xl">
+      <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+        <Calendar className="w-4 h-4 text-[#C6A15B]" /> Manajemen Reservasi
+      </h2>
+      <p className="text-xs text-[#9a99a1] mb-5">Klik status untuk mengganti Confirmed / Pending.</p>
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden">
+        <div className="grid grid-cols-[1fr_1fr_0.6fr_0.8fr_0.4fr] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72]">
+          <span>Nama Tamu</span><span>Tanggal Kelas</span><span>Peserta</span><span>Status</span><span></span>
+        </div>
+        {reservations.map((r) => (
+          <div key={r.id} className="grid grid-cols-[1fr_1fr_0.6fr_0.8fr_0.4fr] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm">
+            <span className="text-[#E2E8F0]">{r.name}</span>
+            <span className="text-[#9a99a1]">{r.date}</span>
+            <span className="text-[#9a99a1] flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {r.pax}</span>
+            <button onClick={() => cycleStatus(r.id)} className={"text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 w-fit transition-colors " + (r.status === "Confirmed" ? "bg-green-500/10 text-green-400 border border-green-500/30" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/30")}>
+              {r.status === "Confirmed" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+              {r.status}
+            </button>
+            <button onClick={() => removeReservation(r.id)} className="text-[#6b6a72] hover:text-red-400 justify-self-end">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+        {reservations.length === 0 && (<div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada reservasi.</div>)}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — AKUNTING                                                   */
+/* ------------------------------------------------------------------ */
+
+function idr(n) {
+  return "Rp " + Math.round(Number(n) || 0).toLocaleString("id-ID");
+}
+function txVendorTotal(tx) {
+  return (tx.instructorPayments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+}
+function txRevenue(tx) {
+  return (Number(tx.costPrice) || 0) - txVendorTotal(tx) - (Number(tx.refund) || 0);
+}
+function inPeriod(dateStr, period, from, to) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  if (period === "bulan_ini") return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  if (period === "bulan_lalu") {
+    const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return d.getFullYear() === lm.getFullYear() && d.getMonth() === lm.getMonth();
+  }
+  if (period === "tahun_ini") return d.getFullYear() === now.getFullYear();
+  if (period === "custom") {
+    if (from && d < new Date(from)) return false;
+    if (to && d > new Date(to + "T23:59:59")) return false;
+    return true;
+  }
+  return true;
+}
+const MONTH_LABELS_ID = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agt", "Sep", "Okt", "Nov", "Des"];
+const ACCOUNTING_PERIODS = [
+  { id: "bulan_ini", label: "Bulan ini" },
+  { id: "bulan_lalu", label: "Bulan lalu" },
+  { id: "tahun_ini", label: "Tahun ini" },
+  { id: "semua", label: "Semua" },
+];
+
+function PeriodFilterBar({ period, setPeriod, from, setFrom, to, setTo }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2 mb-5">
+      {ACCOUNTING_PERIODS.map((p) => (
+        <button
+          key={p.id}
+          onClick={() => setPeriod(p.id)}
+          className={"text-xs px-3 py-1.5 rounded-full border transition-colors " + (period === p.id ? "bg-[#C6A15B] text-[#16151A] border-[#C6A15B]" : "border-[#3a3940] text-[#9a99a1]")}
+        >
+          {p.label}
+        </button>
+      ))}
+      <input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPeriod("custom"); }} className="bg-[#16151A] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-lg px-2 py-1.5" />
+      <span className="text-[#6b6a72] text-xs">–</span>
+      <input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPeriod("custom"); }} className="bg-[#16151A] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-lg px-2 py-1.5" />
+    </div>
+  );
+}
+
+function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, initial }) {
+  const blank = { date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "", instructorPayments: [] };
+  const [form, setForm] = useState(initial || blank);
+
+  useEffect(() => { setForm(initial || blank); }, [initial, open]);
+
+  if (!open) return null;
+
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+  const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const addPayment = () => setForm((f) => ({ ...f, instructorPayments: [...f.instructorPayments, { id: "p-" + Date.now(), vendorId: vendors[0] ? vendors[0].id : "", amount: "", paid: false, note: "" }] }));
+  const updatePayment = (id, k, v) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.map((p) => (p.id === id ? { ...p, [k]: v } : p)) }));
+  const removePayment = (id) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.filter((p) => p.id !== id) }));
+
+  const vendorTotal = form.instructorPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const revenue = (Number(form.costPrice) || 0) - vendorTotal - (Number(form.refund) || 0);
+
+  const handleSave = () => {
+    if (!form.guestName.trim() || !form.activityName.trim() || !form.costPrice) return;
+    onSave({ ...form, id: form.id || ("TX-" + Date.now()), costPrice: Number(form.costPrice) || 0, refund: Number(form.refund) || 0, pax: Number(form.pax) || 1 });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-3xl bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-center justify-between rounded-t-2xl">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">{form.id ? "Edit Rekapan" : "Tambah Rekapan"}</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-5">
+          <div className="grid sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Aplikasi *</label>
+              <select value={form.appId} onChange={(e) => update("appId", e.target.value)} className={inputCls}>
+                {apps.map((a) => (<option key={a.id} value={a.id}>{a.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Tanggal *</label>
+              <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Jumlah Pax *</label>
+              <input type="number" min="1" value={form.pax} onChange={(e) => update("pax", e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Nama Tamu *</label>
+              <input value={form.guestName} onChange={(e) => update("guestName", e.target.value)} placeholder="Nama sesuai booking" className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Nomor WhatsApp</label>
+              <input value={form.phone} onChange={(e) => update("phone", e.target.value)} placeholder="62-8..." className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Aktivitas / Paket *</label>
+            <input value={form.activityName} onChange={(e) => update("activityName", e.target.value)} placeholder="cth. Silver Ring Making Class" className={inputCls} />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Harga Pokok (dari tamu) *</label>
+              <input type="number" value={form.costPrice} onChange={(e) => update("costPrice", e.target.value)} placeholder="0" className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Pengembalian Dana (refund)</label>
+              <input type="number" value={form.refund} onChange={(e) => update("refund", e.target.value)} placeholder="0" className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Catatan</label>
+            <textarea value={form.note} onChange={(e) => update("note", e.target.value)} rows={2} className={inputCls + " resize-none"} />
+          </div>
+
+          <div className="border-t border-[#2a2930] pt-5">
+            <div className="flex items-center justify-between mb-3 gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-[#E2E8F0]">Komisi Instruktur</h4>
+                <p className="text-xs text-[#9a99a1]">Bayaran ke instruktur yang menangani kelas ini. Centang "Sudah dibayar" setelah transfer.</p>
+              </div>
+              <span className="text-sm font-semibold text-[#C6A15B] whitespace-nowrap">{idr(vendorTotal)}</span>
+            </div>
+            <div className="space-y-2 mb-3">
+              {form.instructorPayments.map((p) => (
+                <div key={p.id} className="bg-[#16151A] border border-[#2a2930] rounded-lg p-3 space-y-2">
+                  <div className="grid sm:grid-cols-[1fr_140px_auto] gap-2 items-center">
+                    <select value={p.vendorId} onChange={(e) => updatePayment(p.id, "vendorId", e.target.value)} className={inputCls}>
+                      {vendors.map((v) => (<option key={v.id} value={v.id}>{v.name}</option>))}
+                    </select>
+                    <input type="number" value={p.amount} onChange={(e) => updatePayment(p.id, "amount", e.target.value)} placeholder="Rp 0" className={inputCls} />
+                    <button onClick={() => removePayment(p.id)} className="text-[#6b6a72] hover:text-red-400 justify-self-end shrink-0"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input value={p.note} onChange={(e) => updatePayment(p.id, "note", e.target.value)} placeholder="Keterangan (opsional)" className={inputCls + " flex-1"} />
+                    <label className="flex items-center gap-1.5 text-xs text-[#9a99a1] whitespace-nowrap shrink-0">
+                      <input type="checkbox" checked={!!p.paid} onChange={(e) => updatePayment(p.id, "paid", e.target.checked)} /> Sudah dibayar
+                    </label>
+                  </div>
+                </div>
+              ))}
+              {form.instructorPayments.length === 0 && <div className="text-xs text-[#6b6a72] px-1">Belum ada komisi instruktur untuk transaksi ini.</div>}
+            </div>
+            <GlowButton variant="ghost" onClick={addPayment}><Plus className="w-4 h-4" /> Tambah Komisi Instruktur</GlowButton>
+          </div>
+
+          <div className="bg-[#16151A] border border-[#C6A15B]/20 rounded-xl p-4 space-y-1.5 text-sm">
+            <div className="flex justify-between text-[#9a99a1]"><span>Harga Pokok</span><span>{idr(form.costPrice)}</span></div>
+            <div className="flex justify-between text-[#9a99a1]"><span>− Komisi Instruktur</span><span>{idr(vendorTotal)}</span></div>
+            <div className="flex justify-between text-[#9a99a1]"><span>− Pengembalian Dana</span><span>{idr(form.refund)}</span></div>
+            <div className="flex justify-between text-base font-bold text-[#E2E8F0] pt-2 border-t border-[#2a2930]"><span>Pendapatan</span><span className="text-green-400">{idr(revenue)}</span></div>
+          </div>
+
+          <GlowButton className="w-full" onClick={handleSave}><Check className="w-4 h-4" /> Simpan Rekapan</GlowButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, operational }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const now = new Date();
+
+  const thisMonthTx = transactions.filter((t) => inPeriod(t.date, "bulan_ini"));
+  const totalPax = thisMonthTx.reduce((s, t) => s + (Number(t.pax) || 0), 0);
+  const totalCost = thisMonthTx.reduce((s, t) => s + (Number(t.costPrice) || 0), 0);
+  const totalVendor = thisMonthTx.reduce((s, t) => s + txVendorTotal(t), 0);
+  const totalRevenue = thisMonthTx.reduce((s, t) => s + txRevenue(t), 0);
+  const thisMonthOps = operational.filter((o) => inPeriod(o.date, "bulan_ini")).reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+  const netProfit = totalRevenue - thisMonthOps;
+
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ y: d.getFullYear(), m: d.getMonth(), label: MONTH_LABELS_ID[d.getMonth()] });
+  }
+  const monthTotals = months.map((mo) => transactions.filter((t) => { const d = new Date(t.date); return d.getFullYear() === mo.y && d.getMonth() === mo.m; }).reduce((s, t) => s + txRevenue(t), 0));
+  const maxTotal = Math.max(1, ...monthTotals);
+
+  const appName = (id) => { const a = apps.find((x) => x.id === id); return a ? a.name : "–"; };
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (tx) => { setEditing(tx); setModalOpen(true); };
+  const handleSave = (tx) => setTransactions((prev) => (prev.some((p) => p.id === tx.id) ? prev.map((p) => (p.id === tx.id ? tx : p)) : [tx, ...prev]));
+  const removeTx = (id) => { if (window.confirm("Hapus rekapan ini?")) setTransactions((prev) => prev.filter((p) => p.id !== id)); };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-[#E2E8F0]">Rekapan Utama</h2>
+          <p className="text-xs text-[#9a99a1] max-w-xl">Posisi bulan ini: harga pokok, komisi instruktur, pendapatan, dan laba bersih setelah operasional.</p>
+        </div>
+        <GlowButton onClick={openAdd}><Plus className="w-4 h-4" /> Tambah Rekapan</GlowButton>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Trip Bulan Ini</p>
+          <p className="text-2xl font-bold text-[#E2E8F0]">{thisMonthTx.length}</p>
+          <p className="text-xs text-[#6b6a72] mt-1">{totalPax} pax</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Harga Pokok</p>
+          <p className="text-2xl font-bold text-[#E2E8F0]">{idr(totalCost)}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Komisi Instruktur</p>
+          <p className="text-2xl font-bold text-[#E2E8F0]">{idr(totalVendor)}</p>
+          <p className="text-xs text-[#6b6a72] mt-1">{totalCost > 0 ? Math.round((totalVendor / totalCost) * 100) : 0}% dari harga pokok</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/30 rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Laba Bersih</p>
+          <p className={"text-2xl font-bold " + (netProfit >= 0 ? "text-green-400" : "text-red-400")}>{idr(netProfit)}</p>
+          <p className="text-xs text-[#6b6a72] mt-1">Pendapatan {idr(totalRevenue)} − Ops {idr(thisMonthOps)}</p>
+        </div>
+      </div>
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 mb-6">
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-4">Pendapatan 6 Bulan Terakhir</h3>
+        <div className="flex items-end gap-3 h-40">
+          {months.map((mo, i) => (
+            <div key={i} className="flex-1 flex flex-col items-center gap-2 h-full justify-end">
+              <div
+                className="w-full bg-gradient-to-t from-[#C6A15B] to-[#9C7A3C] rounded-t transition-all duration-500"
+                style={{ height: (monthTotals[i] / maxTotal) * 100 + "%", minHeight: monthTotals[i] > 0 ? "4px" : "0" }}
+                title={idr(monthTotals[i])}
+              />
+              <span className="text-[10px] text-[#6b6a72]">{mo.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
+        <table className="w-full text-sm min-w-[720px]">
+          <thead>
+            <tr className="bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72]">
+              <th className="text-left px-4 py-3">Tanggal</th>
+              <th className="text-left px-4 py-3">Aplikasi</th>
+              <th className="text-left px-4 py-3">Tamu / Aktivitas</th>
+              <th className="text-right px-4 py-3">Harga Pokok</th>
+              <th className="text-right px-4 py-3">Komisi</th>
+              <th className="text-right px-4 py-3">Pendapatan</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((t) => (
+              <tr key={t.id} className="border-t border-[#2a2930]">
+                <td className="px-4 py-3 text-[#9a99a1] whitespace-nowrap">{t.date}</td>
+                <td className="px-4 py-3 text-[#9a99a1]">{appName(t.appId)}</td>
+                <td className="px-4 py-3">
+                  <div className="text-[#E2E8F0]">{t.guestName}</div>
+                  <div className="text-xs text-[#6b6a72]">{t.activityName}</div>
+                </td>
+                <td className="px-4 py-3 text-right text-[#E2E8F0] whitespace-nowrap">{idr(t.costPrice)}</td>
+                <td className="px-4 py-3 text-right text-[#9a99a1] whitespace-nowrap">{idr(txVendorTotal(t))}</td>
+                <td className="px-4 py-3 text-right text-green-400 font-semibold whitespace-nowrap">{idr(txRevenue(t))}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2 justify-end">
+                    <button onClick={() => openEdit(t)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+                    <button onClick={() => removeTx(t.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {transactions.length === 0 && (
+              <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada rekapan. Klik "Tambah Rekapan" untuk mulai mencatat.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="sm:hidden space-y-3">
+        {transactions.length === 0 && (
+          <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada rekapan. Klik "Tambah Rekapan" untuk mulai mencatat.</div>
+        )}
+        {transactions.map((t) => (
+          <div key={t.id} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div>
+                <p className="text-[#E2E8F0] font-semibold">{t.guestName}</p>
+                <p className="text-xs text-[#6b6a72]">{t.activityName}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => openEdit(t)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+                <button onClick={() => removeTx(t.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-xs text-[#6b6a72] mb-3">
+              <span>{t.date}</span>
+              <span>{appName(t.appId)}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center border-t border-[#2a2930] pt-3">
+              <div>
+                <p className="text-[10px] uppercase text-[#6b6a72]">Pokok</p>
+                <p className="text-sm text-[#E2E8F0]">{idr(t.costPrice)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[#6b6a72]">Komisi</p>
+                <p className="text-sm text-[#9a99a1]">{idr(txVendorTotal(t))}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-[#6b6a72]">Pendapatan</p>
+                <p className="text-sm text-green-400 font-semibold">{idr(txRevenue(t))}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AccountingTransactionModal open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave} apps={apps} vendors={vendors} initial={editing} />
+    </div>
+  );
+}
+
+function AccountingOperationalModal({ open, onClose, onSave, initial }) {
+  const blank = { date: new Date().toISOString().slice(0, 10), quantity: 1, need: "", totalAmount: "", note: "" };
+  const [form, setForm] = useState(initial || blank);
+  useEffect(() => { setForm(initial || blank); }, [initial, open]);
+  if (!open) return null;
+
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+  const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const handleSave = () => {
+    if (!form.need.trim() || !form.totalAmount) return;
+    onSave({ ...form, id: form.id || ("OP-" + Date.now()), quantity: Number(form.quantity) || 1, totalAmount: Number(form.totalAmount) || 0 });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-md bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">{form.id ? "Edit Operasional" : "Tambah Operasional"}</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Tanggal *</label>
+              <input type="date" value={form.date} onChange={(e) => update("date", e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Jumlah *</label>
+              <input type="number" min="1" value={form.quantity} onChange={(e) => update("quantity", e.target.value)} className={inputCls} />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Kebutuhan *</label>
+            <input value={form.need} onChange={(e) => update("need", e.target.value)} placeholder="cth. Bensin, kuota internet, sewa tempat" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Total Pembayaran *</label>
+            <input type="number" value={form.totalAmount} onChange={(e) => update("totalAmount", e.target.value)} placeholder="0" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Catatan</label>
+            <textarea value={form.note} onChange={(e) => update("note", e.target.value)} rows={2} className={inputCls + " resize-none"} />
+          </div>
+          <GlowButton className="w-full" onClick={handleSave}><Check className="w-4 h-4" /> Simpan</GlowButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AccountingOperasionalTab({ operational, setOperational }) {
+  const [period, setPeriod] = useState("bulan_ini");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const filtered = operational.filter((o) => inPeriod(o.date, period, from, to));
+  const total = filtered.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (o) => { setEditing(o); setModalOpen(true); };
+  const handleSave = (o) => setOperational((prev) => (prev.some((p) => p.id === o.id) ? prev.map((p) => (p.id === o.id ? o : p)) : [o, ...prev]));
+  const removeOp = (id) => { if (window.confirm("Hapus catatan operasional ini?")) setOperational((prev) => prev.filter((p) => p.id !== id)); };
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-lg font-semibold text-[#E2E8F0]">Operasional</h2>
+          <p className="text-xs text-[#9a99a1] max-w-xl">Pengeluaran di luar komisi instruktur: bensin, listrik, sewa tempat, bahan baku, dan kebutuhan lain. Dikurangkan pada laporan laba rugi.</p>
+        </div>
+        <GlowButton onClick={openAdd}><Plus className="w-4 h-4" /> Tambah Operasional</GlowButton>
+      </div>
+
+      <PeriodFilterBar period={period} setPeriod={setPeriod} from={from} setFrom={setFrom} to={to} setTo={setTo} />
+
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Jumlah Catatan</p>
+          <p className="text-2xl font-bold text-[#E2E8F0]">{filtered.length}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/30 rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Total Operasional</p>
+          <p className="text-2xl font-bold text-[#E2E8F0]">{idr(total)}</p>
+        </div>
+      </div>
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden">
+        {filtered.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada catatan operasional.</div>}
+        {filtered.map((o) => (
+          <div key={o.id} className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#2a2930] last:border-b-0">
+            <div>
+              <p className="text-sm text-[#E2E8F0]">{o.need}{o.quantity > 1 ? " × " + o.quantity : ""}</p>
+              <p className="text-xs text-[#6b6a72]">{o.date}{o.note ? " · " + o.note : ""}</p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <span className="text-sm font-semibold text-[#E2E8F0]">{idr(o.totalAmount)}</span>
+              <button onClick={() => openEdit(o)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+              <button onClick={() => removeOp(o.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AccountingOperationalModal open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave} initial={editing} />
+    </div>
+  );
+}
+
+function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transactions }) {
+  const [vendorForm, setVendorForm] = useState({ name: "", phone: "", note: "" });
+  const [appForm, setAppForm] = useState("");
+  const [editingVendorId, setEditingVendorId] = useState(null);
+  const [vendorEditDraft, setVendorEditDraft] = useState({ name: "", phone: "", note: "" });
+  const [editingAppId, setEditingAppId] = useState(null);
+  const [appEditDraft, setAppEditDraft] = useState("");
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+
+  const addVendor = () => {
+    if (!vendorForm.name.trim()) return;
+    setVendors([...vendors, { id: "vendor-" + Date.now(), ...vendorForm }]);
+    setVendorForm({ name: "", phone: "", note: "" });
+  };
+  const removeVendor = (id) => { if (window.confirm("Hapus instruktur ini?")) setVendors(vendors.filter((v) => v.id !== id)); };
+  const startEditVendor = (v) => { setEditingVendorId(v.id); setVendorEditDraft({ name: v.name, phone: v.phone || "", note: v.note || "" }); };
+  const cancelEditVendor = () => setEditingVendorId(null);
+  const saveEditVendor = () => {
+    if (!vendorEditDraft.name.trim()) return;
+    setVendors(vendors.map((v) => (v.id === editingVendorId ? { ...v, ...vendorEditDraft } : v)));
+    setEditingVendorId(null);
+  };
+
+  const addApp = () => {
+    if (!appForm.trim()) return;
+    setApps([...apps, { id: "app-" + Date.now(), name: appForm.trim() }]);
+    setAppForm("");
+  };
+  const removeApp = (id) => { if (window.confirm("Hapus aplikasi ini?")) setApps(apps.filter((a) => a.id !== id)); };
+  const startEditApp = (a) => { setEditingAppId(a.id); setAppEditDraft(a.name); };
+  const cancelEditApp = () => setEditingAppId(null);
+  const saveEditApp = () => {
+    if (!appEditDraft.trim()) return;
+    setApps(apps.map((a) => (a.id === editingAppId ? { ...a, name: appEditDraft.trim() } : a)));
+    setEditingAppId(null);
+  };
+
+  const vendorStats = (id) => {
+    let total = 0, unpaid = 0;
+    transactions.forEach((t) => (t.instructorPayments || []).forEach((p) => {
+      if (p.vendorId === id) { total += Number(p.amount) || 0; if (!p.paid) unpaid += Number(p.amount) || 0; }
+    }));
+    return { total, unpaid };
+  };
+
+  return (
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1">Master Data</h2>
+        <p className="text-xs text-[#9a99a1]">Kelola daftar instruktur/pihak yang dibayar dan sumber booking.</p>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-3">Instruktur</h3>
+        <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4 overflow-x-auto">
+          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_auto] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[560px]">
+            <span>Nama</span><span>Telepon</span><span>Total Komisi</span><span>Belum Dibayar</span><span></span>
+          </div>
+          {vendors.map((v) => {
+            const stat = vendorStats(v.id);
+            const isEditing = editingVendorId === v.id;
+            return (
+              <div key={v.id} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_auto] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm min-w-[560px]">
+                {isEditing ? (
+                  <>
+                    <div className="space-y-1">
+                      <input value={vendorEditDraft.name} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, name: e.target.value })} placeholder="Nama" className={inputCls} />
+                      <input value={vendorEditDraft.note} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, note: e.target.value })} placeholder="Catatan" className={inputCls} />
+                    </div>
+                    <input value={vendorEditDraft.phone} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, phone: e.target.value })} placeholder="Telepon" className={inputCls} />
+                    <span className="text-[#E2E8F0]">{idr(stat.total)}</span>
+                    <span className={stat.unpaid > 0 ? "text-yellow-400 font-semibold" : "text-[#6b6a72]"}>{stat.unpaid > 0 ? idr(stat.unpaid) : "Lunas"}</span>
+                    <div className="flex items-center gap-2 justify-self-end">
+                      <button onClick={saveEditVendor} className="text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+                      <button onClick={cancelEditVendor} className="text-[#6b6a72] hover:text-red-400"><X className="w-4 h-4" /></button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-[#E2E8F0]">{v.name}</p>
+                      {v.note && <p className="text-xs text-[#6b6a72]">{v.note}</p>}
+                    </div>
+                    <span className="text-[#9a99a1]">{v.phone || "–"}</span>
+                    <span className="text-[#E2E8F0]">{idr(stat.total)}</span>
+                    <span className={stat.unpaid > 0 ? "text-yellow-400 font-semibold" : "text-[#6b6a72]"}>{stat.unpaid > 0 ? idr(stat.unpaid) : "Lunas"}</span>
+                    <div className="flex items-center gap-2 justify-self-end">
+                      <button onClick={() => startEditVendor(v)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+                      <button onClick={() => removeVendor(v.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          {vendors.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada instruktur.</div>}
+        </div>
+
+        <div className="sm:hidden space-y-3 mb-4">
+          {vendors.length === 0 && <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada instruktur.</div>}
+          {vendors.map((v) => {
+            const stat = vendorStats(v.id);
+            const isEditing = editingVendorId === v.id;
+            return (
+              <div key={v.id} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+                {isEditing ? (
+                  <div className="space-y-2">
+                    <input value={vendorEditDraft.name} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, name: e.target.value })} placeholder="Nama" className={inputCls} />
+                    <input value={vendorEditDraft.phone} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, phone: e.target.value })} placeholder="Telepon" className={inputCls} />
+                    <input value={vendorEditDraft.note} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, note: e.target.value })} placeholder="Catatan" className={inputCls} />
+                    <div className="flex gap-2">
+                      <GlowButton className="flex-1" onClick={saveEditVendor}><Check className="w-4 h-4" /> Simpan</GlowButton>
+                      <button onClick={cancelEditVendor} className="px-4 text-sm text-[#9a99a1] hover:text-red-400 border border-[#2a2930] rounded-full">Batal</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div>
+                        <p className="text-[#E2E8F0] font-semibold">{v.name}</p>
+                        {v.note && <p className="text-xs text-[#6b6a72]">{v.note}</p>}
+                        <p className="text-xs text-[#6b6a72] mt-0.5">{v.phone || "–"}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => startEditVendor(v)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+                        <button onClick={() => removeVendor(v.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm border-t border-[#2a2930] pt-2">
+                      <span className="text-[#9a99a1]">Total Komisi: {idr(stat.total)}</span>
+                      <span className={stat.unpaid > 0 ? "text-yellow-400 font-semibold" : "text-[#6b6a72]"}>{stat.unpaid > 0 ? idr(stat.unpaid) : "Lunas"}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-4 grid sm:grid-cols-[1.5fr_1fr_1fr_auto] gap-2">
+          <input placeholder="Nama instruktur" value={vendorForm.name} onChange={(e) => setVendorForm({ ...vendorForm, name: e.target.value })} className={inputCls} />
+          <input placeholder="Telepon" value={vendorForm.phone} onChange={(e) => setVendorForm({ ...vendorForm, phone: e.target.value })} className={inputCls} />
+          <input placeholder="Catatan" value={vendorForm.note} onChange={(e) => setVendorForm({ ...vendorForm, note: e.target.value })} className={inputCls} />
+          <GlowButton onClick={addVendor}><Plus className="w-4 h-4" /> Tambah</GlowButton>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-3">Aplikasi / Agent</h3>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4">
+          {apps.map((a) => {
+            const isEditing = editingAppId === a.id;
+            return (
+              <div key={a.id} className="flex items-center justify-between gap-2 px-4 py-3 border-t border-[#2a2930] first:border-t-0 text-sm">
+                {isEditing ? (
+                  <>
+                    <input value={appEditDraft} onChange={(e) => setAppEditDraft(e.target.value)} className={inputCls + " flex-1"} />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={saveEditApp} className="text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+                      <button onClick={cancelEditApp} className="text-[#6b6a72] hover:text-red-400"><X className="w-4 h-4" /></button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[#E2E8F0]">{a.name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => startEditApp(a)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+                      <button onClick={() => removeApp(a.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+          {apps.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada aplikasi.</div>}
+        </div>
+        <div className="flex gap-2">
+          <input placeholder="cth. Klook, GetYourGuide, Agent Tour" value={appForm} onChange={(e) => setAppForm(e.target.value)} className={inputCls + " flex-1"} />
+          <GlowButton onClick={addApp}><Plus className="w-4 h-4" /> Tambah</GlowButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildPdfHtml(title, subtitle, columns, rows) {
+  const thead = "<tr>" + columns.map((c) => "<th>" + c.label + "</th>").join("") + "</tr>";
+  const tbody = rows.length
+    ? rows.map((r) => "<tr>" + columns.map((c) => "<td>" + c.value(r) + "</td>").join("") + "</tr>").join("")
+    : "<tr><td colspan=\"" + columns.length + "\" style=\"text-align:center;color:#888\">Tidak ada data</td></tr>";
+  return (
+    "<html><head><title>" + title + "</title><style>" +
+    "body{font-family:Arial,sans-serif;padding:32px;color:#111} h1{margin-bottom:4px} table{width:100%;border-collapse:collapse;margin-top:16px} td,th{border:1px solid #ccc;padding:8px;text-align:left;font-size:13px}" +
+    "</style></head><body>" +
+    "<h1>" + title + "</h1>" +
+    "<p>" + subtitle + "</p>" +
+    "<table><thead>" + thead + "</thead><tbody>" + tbody + "</tbody></table>" +
+    "</body></html>"
+  );
+}
+function openPdfWindow(html) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
+}
+
+function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
+  const [period, setPeriod] = useState("bulan_ini");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [tab, setTab] = useState("laba_rugi");
+  const [viewMode, setViewMode] = useState("bulanan");
+
+  const allYears = Array.from(new Set(transactions.map((t) => new Date(t.date).getFullYear()))).sort((a, b) => b - a);
+  const [reportYear, setReportYear] = useState(allYears[0] || new Date().getFullYear());
+  const yearOptions = allYears.length ? allYears : [reportYear];
+
+  const isBreakdownTab = tab === "laba_rugi" || tab === "per_aplikasi" || tab === "per_vendor";
+  const scopedTx = tab === "pengembalian"
+    ? transactions.filter((t) => inPeriod(t.date, period, from, to))
+    : viewMode === "bulanan"
+      ? transactions.filter((t) => new Date(t.date).getFullYear() === reportYear)
+      : transactions;
+  const scopedOps = tab === "pengembalian"
+    ? operational.filter((o) => inPeriod(o.date, period, from, to))
+    : viewMode === "bulanan"
+      ? operational.filter((o) => new Date(o.date).getFullYear() === reportYear)
+      : operational;
+
+  const cost = scopedTx.reduce((s, t) => s + (Number(t.costPrice) || 0), 0);
+  const vendorTotal = scopedTx.reduce((s, t) => s + txVendorTotal(t), 0);
+  const refund = scopedTx.reduce((s, t) => s + (Number(t.refund) || 0), 0);
+  const revenue = scopedTx.reduce((s, t) => s + txRevenue(t), 0);
+  const ops = scopedOps.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+  const netProfit = revenue - ops;
+  const margin = cost > 0 ? (netProfit / cost) * 100 : 0;
+  const unpaidVendor = transactions.reduce((s, t) => s + (t.instructorPayments || []).filter((p) => !p.paid).reduce((s2, p) => s2 + (Number(p.amount) || 0), 0), 0);
+  const periodLabel = (ACCOUNTING_PERIODS.find((p) => p.id === period) || { label: "Kustom" }).label;
+  const scopeLabel = tab === "pengembalian" ? periodLabel : (viewMode === "bulanan" ? "Tahun " + reportYear : "Semua Tahun");
+
+  const tabs = [
+    { id: "laba_rugi", label: "Laba Rugi" },
+    { id: "per_aplikasi", label: "Per Aplikasi/Agent" },
+    { id: "per_vendor", label: "Per Instruktur" },
+    { id: "pengembalian", label: "Pengembalian Dana" },
+  ];
+
+  const buildPeriods = (mode) => (
+    mode === "bulanan"
+      ? MONTH_LABELS_ID.map((label, m) => ({ key: label, test: (d) => d.getFullYear() === reportYear && d.getMonth() === m }))
+      : (allYears.length ? allYears : [reportYear]).map((y) => ({ key: String(y), test: (d) => d.getFullYear() === y }))
+  );
+
+  const labaRugiRows = buildPeriods(viewMode).map((p) => {
+    const txs = transactions.filter((t) => p.test(new Date(t.date)));
+    const opsP = operational.filter((o) => p.test(new Date(o.date))).reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+    const costP = txs.reduce((s, t) => s + (Number(t.costPrice) || 0), 0);
+    const instrP = txs.reduce((s, t) => s + txVendorTotal(t), 0);
+    const refundP = txs.reduce((s, t) => s + (Number(t.refund) || 0), 0);
+    const revenueP = txs.reduce((s, t) => s + txRevenue(t), 0);
+    return { key: p.key, count: txs.length, cost: costP, instr: instrP, refund: refundP, revenue: revenueP, ops: opsP, net: revenueP - opsP };
+  });
+
+  const appBreakdown = [];
+  buildPeriods(viewMode).forEach((p) => {
+    apps.forEach((a) => {
+      const txs = transactions.filter((t) => t.appId === a.id && p.test(new Date(t.date)));
+      if (txs.length > 0) appBreakdown.push({ period: p.key, name: a.name, appId: a.id, periodTest: p.test, count: txs.length, revenue: txs.reduce((s, t) => s + txRevenue(t), 0) });
+    });
+  });
+
+  const vendorBreakdown = [];
+  buildPeriods(viewMode).forEach((p) => {
+    vendors.forEach((v) => {
+      let total = 0, unpaid = 0, count = 0;
+      transactions.forEach((t) => {
+        if (!p.test(new Date(t.date))) return;
+        (t.instructorPayments || []).forEach((pay) => {
+          if (pay.vendorId === v.id) { total += Number(pay.amount) || 0; count += 1; if (!pay.paid) unpaid += Number(pay.amount) || 0; }
+        });
+      });
+      if (count > 0) vendorBreakdown.push({ period: p.key, name: v.name, vendorId: v.id, periodTest: p.test, count, total, unpaid });
+    });
+  });
+
+  const refundList = scopedTx.filter((t) => (Number(t.refund) || 0) > 0);
+
+  const handleDownloadPdf = () => {
+    if (tab === "laba_rugi") {
+      const cols = [
+        { label: viewMode === "bulanan" ? "Bulan" : "Tahun", value: (r) => r.key },
+        { label: "Trip", value: (r) => r.count },
+        { label: "Harga Pokok", value: (r) => idr(r.cost) },
+        { label: "Komisi Instruktur", value: (r) => idr(r.instr) },
+        { label: "Refund", value: (r) => idr(r.refund) },
+        { label: "Pendapatan", value: (r) => idr(r.revenue) },
+        { label: "Operasional", value: (r) => idr(r.ops) },
+        { label: "Laba Bersih", value: (r) => idr(r.net) },
+      ];
+      openPdfWindow(buildPdfHtml("Laporan Laba Rugi - Family Silver Class Bali", (viewMode === "bulanan" ? "Laporan Bulanan" : "Laporan Tahunan") + " &middot; " + scopeLabel, cols, labaRugiRows));
+    } else if (tab === "per_aplikasi") {
+      const cols = [
+        { label: viewMode === "bulanan" ? "Bulan" : "Tahun", value: (r) => r.period },
+        { label: "Aplikasi/Agent", value: (r) => r.name },
+        { label: "Trip", value: (r) => r.count },
+        { label: "Pendapatan", value: (r) => idr(r.revenue) },
+      ];
+      openPdfWindow(buildPdfHtml("Laporan Per Aplikasi/Agent - Family Silver Class Bali", (viewMode === "bulanan" ? "Laporan Bulanan" : "Laporan Tahunan") + " &middot; " + scopeLabel, cols, appBreakdown));
+    } else if (tab === "per_vendor") {
+      const cols = [
+        { label: viewMode === "bulanan" ? "Bulan" : "Tahun", value: (r) => r.period },
+        { label: "Instruktur", value: (r) => r.name },
+        { label: "Transaksi", value: (r) => r.count },
+        { label: "Total Komisi", value: (r) => idr(r.total) },
+        { label: "Belum Dibayar", value: (r) => (r.unpaid > 0 ? idr(r.unpaid) : "Lunas") },
+      ];
+      openPdfWindow(buildPdfHtml("Laporan Per Instruktur - Family Silver Class Bali", (viewMode === "bulanan" ? "Laporan Bulanan" : "Laporan Tahunan") + " &middot; " + scopeLabel, cols, vendorBreakdown));
+    } else {
+      const cols = [
+        { label: "Tanggal", value: (r) => r.date },
+        { label: "Tamu", value: (r) => r.guestName },
+        { label: "Jumlah Refund", value: (r) => idr(r.refund) },
+      ];
+      openPdfWindow(buildPdfHtml("Laporan Pengembalian Dana - Family Silver Class Bali", "Periode: " + periodLabel, cols, refundList));
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const text =
+      "*Laporan Keuangan - Family Silver Class Bali*\n" +
+      "Cakupan: " + scopeLabel + "\n\n" +
+      "Harga Pokok: " + idr(cost) + "\n" +
+      "Komisi Instruktur: " + idr(vendorTotal) + "\n" +
+      "Pengembalian Dana: " + idr(refund) + "\n" +
+      "Pendapatan: " + idr(revenue) + "\n" +
+      "Operasional: " + idr(ops) + "\n" +
+      "*Laba Bersih: " + idr(netProfit) + "*\n" +
+      "Margin Bersih: " + margin.toFixed(1) + "%\n" +
+      "Instruktur Belum Dibayar: " + idr(unpaidVendor);
+    window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+  };
+
+  const handleDownloadVendorRowPdf = (row) => {
+    const details = [];
+    transactions.forEach((t) => {
+      if (!row.periodTest(new Date(t.date))) return;
+      (t.instructorPayments || []).forEach((pay) => {
+        if (pay.vendorId === row.vendorId) {
+          details.push({ date: t.date, guestName: t.guestName, activityName: t.activityName, amount: pay.amount, paid: pay.paid });
+        }
+      });
+    });
+    const cols = [
+      { label: "Tanggal", value: (r) => r.date },
+      { label: "Tamu", value: (r) => r.guestName },
+      { label: "Aktivitas", value: (r) => r.activityName },
+      { label: "Komisi", value: (r) => idr(r.amount) },
+      { label: "Status", value: (r) => (r.paid ? "Lunas" : "Belum Dibayar") },
+    ];
+    const title = "Laporan Komisi Instruktur - " + row.name + " - Family Silver Class Bali";
+    const subtitle = "Periode: " + row.period + " &middot; Total " + idr(row.total) + (row.unpaid > 0 ? " &middot; Belum Dibayar " + idr(row.unpaid) : "");
+    openPdfWindow(buildPdfHtml(title, subtitle, cols, details));
+  };
+
+  const handleDownloadAppRowPdf = (row) => {
+    const details = transactions.filter((t) => t.appId === row.appId && row.periodTest(new Date(t.date)));
+    const cols = [
+      { label: "Tanggal", value: (r) => r.date },
+      { label: "Tamu", value: (r) => r.guestName },
+      { label: "Aktivitas", value: (r) => r.activityName },
+      { label: "Pendapatan", value: (r) => idr(txRevenue(r)) },
+    ];
+    const title = "Laporan Per Aplikasi/Agent - " + row.name + " - Family Silver Class Bali";
+    const subtitle = "Periode: " + row.period + " &middot; Total Pendapatan " + idr(row.revenue);
+    openPdfWindow(buildPdfHtml(title, subtitle, cols, details));
+  };
+
+  return (
+    <div>
+      <div className="mb-5">
+        <h2 className="text-lg font-semibold text-[#E2E8F0]">Laporan</h2>
+        <p className="text-xs text-[#9a99a1] max-w-xl">Ringkasan dari rekapan aktivitas dan operasional. Semua angka mengikuti periode yang dipilih.</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4 border-b border-[#2a2930] pb-3">
+        {tabs.map((tb) => (
+          <button key={tb.id} onClick={() => setTab(tb.id)} className={"text-sm px-3 py-1.5 rounded-lg transition-colors " + (tab === tb.id ? "bg-[#C6A15B]/10 text-[#C6A15B]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}>
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "pengembalian" ? (
+        <PeriodFilterBar period={period} setPeriod={setPeriod} from={from} setFrom={setFrom} to={to} setTo={setTo} />
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 mb-5">
+          <button onClick={() => setViewMode("bulanan")} className={"text-xs px-3 py-1.5 rounded-full border transition-colors " + (viewMode === "bulanan" ? "bg-[#C6A15B] text-[#16151A] border-[#C6A15B]" : "border-[#3a3940] text-[#9a99a1]")}>Bulanan</button>
+          <button onClick={() => setViewMode("tahunan")} className={"text-xs px-3 py-1.5 rounded-full border transition-colors " + (viewMode === "tahunan" ? "bg-[#C6A15B] text-[#16151A] border-[#C6A15B]" : "border-[#3a3940] text-[#9a99a1]")}>Tahunan</button>
+          {viewMode === "bulanan" && (
+            <select value={reportYear} onChange={(e) => setReportYear(Number(e.target.value))} className="bg-[#16151A] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-lg px-2 py-1.5 outline-none focus:border-[#C6A15B]">
+              {yearOptions.map((y) => (<option key={y} value={y}>{y}</option>))}
+            </select>
+          )}
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2 mb-6">
+        <GlowButton variant="ghost" onClick={handleDownloadPdf}><FileText className="w-4 h-4" /> Unduh PDF</GlowButton>
+        <button onClick={handleShareWhatsApp} className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm bg-[#25D366] text-[#0b1a10] hover:brightness-110 transition-all">
+          <MessageSquare className="w-4 h-4" /> Bagikan ke WhatsApp
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Harga Pokok</p>
+          <p className="text-xl font-bold text-[#E2E8F0]">{idr(cost)}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Komisi Instruktur</p>
+          <p className="text-xl font-bold text-[#E2E8F0]">{idr(vendorTotal)}</p>
+          <p className="text-xs text-[#6b6a72] mt-1">{cost > 0 ? Math.round((vendorTotal / cost) * 100) : 0}% dari harga pokok</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Pengembalian Dana</p>
+          <p className="text-xl font-bold text-[#E2E8F0]">{idr(refund)}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Pendapatan</p>
+          <p className="text-xl font-bold text-[#E2E8F0]">{idr(revenue)}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Operasional</p>
+          <p className="text-xl font-bold text-[#E2E8F0]">{idr(ops)}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/30 rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Laba Bersih</p>
+          <p className={"text-xl font-bold " + (netProfit >= 0 ? "text-green-400" : "text-red-400")}>{idr(netProfit)}</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Margin Bersih</p>
+          <p className="text-xl font-bold text-[#E2E8F0]">{margin.toFixed(1)}%</p>
+        </div>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1">Instruktur Belum Dibayar</p>
+          <p className="text-xl font-bold text-yellow-400">{idr(unpaidVendor)}</p>
+        </div>
+      </div>
+
+      {tab === "laba_rugi" && (
+        <>
+          <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-8 gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[820px]">
+              <span>{viewMode === "bulanan" ? "Bulan" : "Tahun"}</span><span>Trip</span><span>Harga Pokok</span><span>Instruktur</span><span>Refund</span><span>Pendapatan</span><span>Operasional</span><span className="text-right">Laba Bersih</span>
+            </div>
+            {labaRugiRows.map((r, i) => (
+              <div key={i} className="grid grid-cols-8 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[820px]">
+                <span className="text-[#E2E8F0]">{r.key}</span>
+                <span className="text-[#9a99a1]">{r.count}</span>
+                <span className="text-[#9a99a1]">{idr(r.cost)}</span>
+                <span className="text-[#9a99a1]">{idr(r.instr)}</span>
+                <span className="text-[#9a99a1]">{idr(r.refund)}</span>
+                <span className="text-[#9a99a1]">{idr(r.revenue)}</span>
+                <span className="text-[#9a99a1]">{idr(r.ops)}</span>
+                <span className={"text-right font-semibold " + (r.net >= 0 ? "text-green-400" : "text-red-400")}>{idr(r.net)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="sm:hidden space-y-3">
+            {labaRugiRows.every((r) => r.count === 0) && <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+            {labaRugiRows.filter((r) => r.count > 0).map((r, i) => (
+              <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[#E2E8F0] font-semibold">{r.key}</span>
+                  <span className="text-xs text-[#6b6a72]">{r.count} trip</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><p className="text-[10px] uppercase text-[#6b6a72]">Pokok</p><p className="text-[#E2E8F0]">{idr(r.cost)}</p></div>
+                  <div><p className="text-[10px] uppercase text-[#6b6a72]">Instruktur</p><p className="text-[#9a99a1]">{idr(r.instr)}</p></div>
+                  <div><p className="text-[10px] uppercase text-[#6b6a72]">Pendapatan</p><p className="text-[#9a99a1]">{idr(r.revenue)}</p></div>
+                  <div><p className="text-[10px] uppercase text-[#6b6a72]">Laba Bersih</p><p className={r.net >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>{idr(r.net)}</p></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "per_aplikasi" && (
+        <>
+          <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-5 gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[620px]">
+              <span>{viewMode === "bulanan" ? "Bulan" : "Tahun"}</span><span>Aplikasi/Agent</span><span>Trip</span><span>Pendapatan</span><span></span>
+            </div>
+            {appBreakdown.map((a, i) => (
+              <div key={i} className="grid grid-cols-5 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[620px] items-center">
+                <span className="text-[#9a99a1]">{a.period}</span>
+                <span className="text-[#E2E8F0]">{a.name}</span>
+                <span className="text-[#9a99a1]">{a.count}</span>
+                <span className="text-green-400 font-semibold">{idr(a.revenue)}</span>
+                <button onClick={() => handleDownloadAppRowPdf(a)} className="justify-self-end text-[#9a99a1] hover:text-[#C6A15B]" title={"Unduh PDF " + a.name + " - " + a.period}><FileText className="w-4 h-4" /></button>
+              </div>
+            ))}
+            {appBreakdown.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+          </div>
+          <div className="sm:hidden space-y-3">
+            {appBreakdown.length === 0 && <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+            {appBreakdown.map((a, i) => (
+              <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[#E2E8F0] font-semibold">{a.name}</p>
+                    <p className="text-xs text-[#6b6a72]">{a.period} · {a.count} trip</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">{idr(a.revenue)}</span>
+                </div>
+                <button onClick={() => handleDownloadAppRowPdf(a)} className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-[#C6A15B] border border-[#C6A15B]/30 rounded-full py-1.5 hover:bg-[#C6A15B]/10">
+                  <FileText className="w-3.5 h-3.5" /> Unduh PDF {a.period}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "per_vendor" && (
+        <>
+          <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-6 gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[660px]">
+              <span>{viewMode === "bulanan" ? "Bulan" : "Tahun"}</span><span>Instruktur</span><span>Transaksi</span><span>Total Komisi</span><span>Belum Dibayar</span><span></span>
+            </div>
+            {vendorBreakdown.map((v, i) => (
+              <div key={i} className="grid grid-cols-6 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[660px] items-center">
+                <span className="text-[#9a99a1]">{v.period}</span>
+                <span className="text-[#E2E8F0]">{v.name}</span>
+                <span className="text-[#9a99a1]">{v.count}</span>
+                <span className="text-[#9a99a1]">{idr(v.total)}</span>
+                <span className={"font-semibold " + (v.unpaid > 0 ? "text-yellow-400" : "text-[#6b6a72]")}>{v.unpaid > 0 ? idr(v.unpaid) : "Lunas"}</span>
+                <button onClick={() => handleDownloadVendorRowPdf(v)} className="justify-self-end text-[#9a99a1] hover:text-[#C6A15B]" title={"Unduh PDF " + v.name + " - " + v.period}><FileText className="w-4 h-4" /></button>
+              </div>
+            ))}
+            {vendorBreakdown.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+          </div>
+          <div className="sm:hidden space-y-3">
+            {vendorBreakdown.length === 0 && <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+            {vendorBreakdown.map((v, i) => (
+              <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[#E2E8F0] font-semibold">{v.name}</span>
+                  <span className="text-xs text-[#6b6a72]">{v.period} · {v.count} transaksi</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-[#9a99a1]">Total: {idr(v.total)}</span>
+                  <span className={"font-semibold " + (v.unpaid > 0 ? "text-yellow-400" : "text-[#6b6a72]")}>{v.unpaid > 0 ? idr(v.unpaid) : "Lunas"}</span>
+                </div>
+                <button onClick={() => handleDownloadVendorRowPdf(v)} className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-[#C6A15B] border border-[#C6A15B]/30 rounded-full py-1.5 hover:bg-[#C6A15B]/10">
+                  <FileText className="w-3.5 h-3.5" /> Unduh PDF {v.period}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "pengembalian" && (
+        <>
+          <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden">
+            <div className="grid grid-cols-3 gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72]"><span>Tanggal</span><span>Tamu</span><span className="text-right">Jumlah Refund</span></div>
+            {refundList.map((t) => (
+              <div key={t.id} className="grid grid-cols-3 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm">
+                <span className="text-[#9a99a1]">{t.date}</span>
+                <span className="text-[#E2E8F0]">{t.guestName}</span>
+                <span className="text-right text-red-400 font-semibold">{idr(t.refund)}</span>
+              </div>
+            ))}
+            {refundList.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada pengembalian dana pada periode ini.</div>}
+          </div>
+          <div className="sm:hidden space-y-3">
+            {refundList.length === 0 && <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada pengembalian dana pada periode ini.</div>}
+            {refundList.map((t) => (
+              <div key={t.id} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[#E2E8F0] font-semibold">{t.guestName}</p>
+                  <p className="text-xs text-[#6b6a72]">{t.date}</p>
+                </div>
+                <span className="text-red-400 font-semibold">{idr(t.refund)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function AccountingManager({ transactions, setTransactions, operational, setOperational, vendors, setVendors, apps, setApps }) {
+  const [subtab, setSubtab] = useState("rekapan");
+  const subtabs = [
+    { id: "rekapan", label: "Rekapan Utama", icon: Coins },
+    { id: "operasional", label: "Operasional", icon: FileText },
+    { id: "masterdata", label: "Master Data", icon: Users },
+    { id: "laporan", label: "Laporan", icon: BarChart3 },
+  ];
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2 mb-6 border-b border-[#2a2930] pb-4">
+        {subtabs.map((s) => (
+          <button key={s.id} onClick={() => setSubtab(s.id)} className={"flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-colors " + (subtab === s.id ? "bg-[#C6A15B]/10 text-[#C6A15B] border border-[#C6A15B]/30" : "text-[#9a99a1] hover:text-[#E2E8F0] border border-transparent")}>
+            <s.icon className="w-4 h-4" /> {s.label}
+          </button>
+        ))}
+      </div>
+      {subtab === "rekapan" && <AccountingRekapanTab transactions={transactions} setTransactions={setTransactions} apps={apps} vendors={vendors} operational={operational} />}
+      {subtab === "operasional" && <AccountingOperasionalTab operational={operational} setOperational={setOperational} />}
+      {subtab === "masterdata" && <AccountingMasterDataTab vendors={vendors} setVendors={setVendors} apps={apps} setApps={setApps} transactions={transactions} />}
+      {subtab === "laporan" && <AccountingLaporanTab transactions={transactions} operational={operational} vendors={vendors} apps={apps} />}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — SEO & AI HEALTH                                            */
+/* ------------------------------------------------------------------ */
+
+function SEOHealth() {
+  const localScore = 92;
+  const aiScore = 88;
+
+  const ScoreRing = ({ score, label }) => (
+    <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-6 flex items-center gap-5">
+      <div className="relative w-20 h-20 shrink-0">
+        <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#2a2930" strokeWidth="3" />
+          <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#C6A15B" strokeWidth="3" strokeDasharray={score + ", 100"} strokeLinecap="round" />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-[#E2E8F0]">{score}</div>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-[#E2E8F0]">{label}</p>
+        <p className="text-xs text-[#9a99a1] mt-1 flex items-center gap-1"><TrendingUp className="w-3 h-3 text-green-400" /> +4 poin bulan ini</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="max-w-3xl">
+      <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
+        <BarChart3 className="w-4 h-4 text-[#C6A15B]" /> SEO & AI Search Health
+      </h2>
+      <p className="text-xs text-[#9a99a1] mb-5">Kesiapan pencarian lokal dan visibilitas di AI search engine.</p>
+
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <ScoreRing score={localScore} label="Local SEO Score" />
+        <ScoreRing score={aiScore} label="AI-Search Readiness (GEO)" />
+      </div>
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-4 flex items-center gap-2"><FileText className="w-4 h-4 text-[#C6A15B]" /> Checklist Kesehatan</h3>
+        <div className="space-y-3">
+          {seoChecklist.map((item, i) => (
+            <div key={i} className="flex items-center gap-3 text-sm">
+              {item.ok ? <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" /> : <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />}
+              <span className={item.ok ? "text-[#c7c6cc]" : "text-yellow-400/90"}>{item.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5 flex items-start gap-3">
+        <ShieldCheck className="w-5 h-5 text-[#C6A15B] shrink-0 mt-0.5" />
+        <p className="text-xs text-[#9a99a1] leading-relaxed">
+          NAP konsisten di seluruh halaman dan Google Business Profile. Struktur JSON-LD dan blok teks AI-quotable
+          sudah aktif — cek melalui panel "Inspect SEO & AI Metadata" di Customer Landing Page. Situs kini mendukung
+          10 bahasa dan konversi 10 mata uang untuk pengunjung mancanegara.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — HOMEPAGE MANAGER (about / why-us / steps / faq / carousel) */
+/* ------------------------------------------------------------------ */
+
+function HomepageManager({ content, setContent, settings, setSettings, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, lang }) {
+  const [editLang, setEditLang] = useState(lang);
+  const [aboutDraft, setAboutDraft] = useState(content[editLang].about);
+  const [whyUsDraft, setWhyUsDraft] = useState(content[editLang].whyUs);
+  const [stepsDraft, setStepsDraft] = useState(content[editLang].steps);
+  const [faqDraft, setFaqDraft] = useState(content[editLang].faq);
+  const [statsDraft, setStatsDraft] = useState(content[editLang].stats || []);
+  const [mapAddressDraft, setMapAddressDraft] = useState(settings.mapAddress || "");
+  const [promoDeadlineDraft, setPromoDeadlineDraft] = useState(settings.promoDeadline || "");
+  const [instagramHandleDraft, setInstagramHandleDraft] = useState(settings.instagramHandle || "");
+  const [heroPickerOpen, setHeroPickerOpen] = useState(false);
+  const [guestPickerOpen, setGuestPickerOpen] = useState(false);
+  const [instagramPickerOpen, setInstagramPickerOpen] = useState(false);
+  const [stepPhotoPickerIdx, setStepPhotoPickerIdx] = useState(null);
+  const [instructorForm, setInstructorForm] = useState({ name: "", role: "", photo: null });
+  const [asSeenInForm, setAsSeenInForm] = useState("");
+  const [saved, setSaved] = useState("");
+
+  const flash = (key) => { setSaved(key); setTimeout(() => setSaved(""), 2000); };
+
+  const handleLangChange = (newLang) => {
+    setEditLang(newLang);
+    setAboutDraft(content[newLang].about);
+    setWhyUsDraft(content[newLang].whyUs);
+    setStepsDraft(content[newLang].steps);
+    setFaqDraft(content[newLang].faq);
+    setStatsDraft(content[newLang].stats || []);
+  };
+
+  const saveAbout = () => { setContent({ ...content, [editLang]: { ...content[editLang], about: aboutDraft } }); flash("about"); };
+  const saveWhyUs = () => { setContent({ ...content, [editLang]: { ...content[editLang], whyUs: whyUsDraft } }); flash("whyUs"); };
+  const saveSteps = () => { setContent({ ...content, [editLang]: { ...content[editLang], steps: stepsDraft } }); flash("steps"); };
+  const saveFaq = () => { setContent({ ...content, [editLang]: { ...content[editLang], faq: faqDraft } }); flash("faq"); };
+  const saveStats = () => { setContent({ ...content, [editLang]: { ...content[editLang], stats: statsDraft } }); flash("stats"); };
+  const saveMapAddress = () => { setSettings({ ...settings, mapAddress: mapAddressDraft }); flash("map"); };
+  const savePromoDeadline = () => { setSettings({ ...settings, promoDeadline: promoDeadlineDraft }); flash("deadline"); };
+  const saveInstagramHandle = () => { setSettings({ ...settings, instagramHandle: instagramHandleDraft }); flash("instagram"); };
+  const setBeforePhoto = (name) => setSettings({ ...settings, beforeAfter: { ...(settings.beforeAfter || {}), beforePhoto: name } });
+  const setAfterPhoto = (name) => setSettings({ ...settings, beforeAfter: { ...(settings.beforeAfter || {}), afterPhoto: name } });
+
+  const updateWhyUs = (i, key, value) => setWhyUsDraft(whyUsDraft.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
+  const addWhyUs = () => setWhyUsDraft([...whyUsDraft, { icon: "gem", title: "", description: "" }]);
+  const removeWhyUs = (i) => setWhyUsDraft(whyUsDraft.filter((_, idx) => idx !== i));
+
+  const updateStep = (i, key, value) => setStepsDraft(stepsDraft.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
+  const addStep = () => setStepsDraft([...stepsDraft, { title: "", description: "", photo: null }]);
+  const removeStep = (i) => setStepsDraft(stepsDraft.filter((_, idx) => idx !== i));
+
+  const updateFaq = (i, key, value) => setFaqDraft(faqDraft.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
+  const addFaq = () => setFaqDraft([...faqDraft, { q: "", a: "" }]);
+  const removeFaq = (i) => setFaqDraft(faqDraft.filter((_, idx) => idx !== i));
+
+  const updateStat = (i, key, value) => setStatsDraft(statsDraft.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
+  const addStat = () => setStatsDraft([...statsDraft, { value: 0, decimals: 0, suffix: "", label: "" }]);
+  const removeStat = (i) => setStatsDraft(statsDraft.filter((_, idx) => idx !== i));
+
+  const toggleHeroPhoto = (name) => {
+    if (heroPhotos.includes(name)) setHeroPhotos(heroPhotos.filter((p) => p !== name));
+    else setHeroPhotos([...heroPhotos, name]);
+  };
+  const toggleGuestPhoto = (name) => {
+    if (guestGalleryPhotos.includes(name)) setGuestGalleryPhotos(guestGalleryPhotos.filter((p) => p !== name));
+    else setGuestGalleryPhotos([...guestGalleryPhotos, name]);
+  };
+  const toggleInstagramPhoto = (name) => {
+    if (instagramPhotos.includes(name)) setInstagramPhotos(instagramPhotos.filter((p) => p !== name));
+    else setInstagramPhotos([...instagramPhotos, name]);
+  };
+
+  const addInstructor = () => {
+    if (!instructorForm.name) return;
+    setInstructors([...instructors, { id: "team-" + Date.now(), name: instructorForm.name, role: instructorForm.role, photo: instructorForm.photo }]);
+    setInstructorForm({ name: "", role: "", photo: null });
+  };
+  const removeInstructor = (id) => setInstructors(instructors.filter((i) => i.id !== id));
+
+  const addAsSeenIn = () => {
+    if (!asSeenInForm.trim()) return;
+    setAsSeenIn([...asSeenIn, asSeenInForm.trim()]);
+    setAsSeenInForm("");
+  };
+  const removeAsSeenIn = (i) => setAsSeenIn(asSeenIn.filter((_, idx) => idx !== i));
+
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+  const taCls = inputCls + " resize-none";
+
+  return (
+    <div className="space-y-8 max-w-3xl">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold text-[#E2E8F0] flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[#C6A15B]" /> Homepage Manager
+        </h2>
+        <select value={editLang} onChange={(e) => handleLangChange(e.target.value)} className="bg-[#1c1b21] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-full px-3 py-1.5 outline-none focus:border-[#C6A15B]">
+          {LANGUAGES.map((l) => (<option key={l.code} value={l.code}>{l.flag} {l.label}</option>))}
+        </select>
+      </div>
+      <p className="text-xs text-[#9a99a1] -mt-6">Kelola semua section tambahan di halaman utama: About, Why Us, Step by Step, Galeri Tamu, Tim, As Seen In, Peta, dan FAQ.</p>
+
+      {/* Hero Carousel */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Star className="w-4 h-4 text-[#C6A15B]" /> Foto Hero Carousel</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Foto yang berputar otomatis di banner utama halaman depan.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+            {heroPhotos.length === 0 && <div className="col-span-full text-center text-sm text-[#6b6a72] py-4">Belum ada foto.</div>}
+            {heroPhotos.map((name) => (
+              <div key={name} className="relative aspect-square rounded-lg overflow-hidden group">
+                <img src={photo(name)} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => toggleHeroPhoto(name)} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 rounded-full p-1 text-white transition-colors"><X className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
+          <GlowButton variant="ghost" onClick={() => setHeroPickerOpen((v) => !v)}><Plus className="w-4 h-4" /> {heroPickerOpen ? "Tutup Pilihan Foto" : "Tambah Foto"}</GlowButton>
+          {heroPickerOpen && <div className="mt-4"><PhotoPickerGrid selected={heroPhotos} multiple={true} onToggle={toggleHeroPhoto} /></div>}
+        </div>
+      </div>
+
+      {/* About */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><FileText className="w-4 h-4 text-[#C6A15B]" /> About / Cerita Kami ({editLang.toUpperCase()})</h3>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <textarea value={aboutDraft} onChange={(e) => setAboutDraft(e.target.value)} rows={4} className={taCls} />
+          <GlowButton onClick={saveAbout}><Check className="w-4 h-4" /> {saved === "about" ? "Tersimpan!" : "Simpan About"}</GlowButton>
+        </div>
+      </div>
+
+      {/* Team */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Users className="w-4 h-4 text-[#C6A15B]" /> Tim Instruktur</h3>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4">
+          {instructors.length === 0 && <div className="px-4 py-6 text-center text-sm text-[#6b6a72]">Belum ada instruktur.</div>}
+          {instructors.map((it) => (
+            <div key={it.id} className="flex items-center justify-between px-4 py-3 border-b border-[#2a2930] last:border-b-0">
+              <div className="flex items-center gap-3">
+                {it.photo ? <img src={photo(it.photo)} alt="" className="w-9 h-9 rounded-full object-cover" /> : <div className="w-9 h-9 rounded-full bg-[#2a2930]" />}
+                <div>
+                  <p className="text-sm text-[#E2E8F0]">{it.name}</p>
+                  <p className="text-xs text-[#9a99a1]">{it.role}</p>
+                </div>
+              </div>
+              <button onClick={() => removeInstructor(it.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+        </div>
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5 space-y-3">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input placeholder="Nama instruktur" value={instructorForm.name} onChange={(e) => setInstructorForm({ ...instructorForm, name: e.target.value })} className={inputCls} />
+            <input placeholder="Peran (contoh: Master Silversmith)" value={instructorForm.role} onChange={(e) => setInstructorForm({ ...instructorForm, role: e.target.value })} className={inputCls} />
+          </div>
+          <PhotoPickerGrid selected={instructorForm.photo} multiple={false} onToggle={(name) => setInstructorForm({ ...instructorForm, photo: name })} />
+          <GlowButton onClick={addInstructor}><Plus className="w-4 h-4" /> Tambah Instruktur</GlowButton>
+        </div>
+      </div>
+
+      {/* Why Us */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Award className="w-4 h-4 text-[#C6A15B]" /> Why Choose Us ({editLang.toUpperCase()})</h3>
+        <div className="space-y-3 mb-3">
+          {whyUsDraft.map((it, i) => (
+            <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <select value={it.icon} onChange={(e) => updateWhyUs(i, "icon", e.target.value)} className="bg-[#16151A] border border-[#2a2930] text-[#E2E8F0] text-xs rounded-lg px-2 py-1.5 outline-none focus:border-[#C6A15B]">
+                  {ICON_OPTIONS.map((o) => (<option key={o.key} value={o.key}>{o.label}</option>))}
+                </select>
+                <input placeholder="Judul" value={it.title} onChange={(e) => updateWhyUs(i, "title", e.target.value)} className={inputCls + " flex-1"} />
+                <button onClick={() => removeWhyUs(i)} className="text-[#6b6a72] hover:text-red-400 shrink-0"><Trash2 className="w-4 h-4" /></button>
+              </div>
+              <textarea placeholder="Deskripsi" value={it.description} onChange={(e) => updateWhyUs(i, "description", e.target.value)} rows={2} className={taCls} />
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <GlowButton variant="ghost" onClick={addWhyUs}><Plus className="w-4 h-4" /> Tambah Item</GlowButton>
+          <GlowButton onClick={saveWhyUs}><Check className="w-4 h-4" /> {saved === "whyUs" ? "Tersimpan!" : "Simpan Why Us"}</GlowButton>
+        </div>
+      </div>
+
+      {/* Steps */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Hammer className="w-4 h-4 text-[#C6A15B]" /> Step by Step Making Silver ({editLang.toUpperCase()})</h3>
+        <div className="space-y-3 mb-3">
+          {stepsDraft.map((it, i) => (
+            <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[#C6A15B] font-semibold shrink-0 w-6">#{i + 1}</span>
+                <input placeholder="Judul langkah" value={it.title} onChange={(e) => updateStep(i, "title", e.target.value)} className={inputCls + " flex-1"} />
+                <button onClick={() => removeStep(i)} className="text-[#6b6a72] hover:text-red-400 shrink-0"><Trash2 className="w-4 h-4" /></button>
+              </div>
+              <textarea placeholder="Deskripsi langkah" value={it.description} onChange={(e) => updateStep(i, "description", e.target.value)} rows={2} className={taCls} />
+              <div className="flex items-center gap-3">
+                {it.photo ? (
+                  <div className="relative w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                    <img src={photo(it.photo)} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => updateStep(i, "photo", null)} className="absolute top-0.5 right-0.5 bg-black/70 hover:bg-red-500 rounded-full p-0.5 text-white transition-colors"><X className="w-3 h-3" /></button>
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 rounded-lg border border-dashed border-[#3a3940] flex items-center justify-center text-[#6b6a72] shrink-0">
+                    <FileText className="w-5 h-5" />
+                  </div>
+                )}
+                <GlowButton variant="ghost" onClick={() => setStepPhotoPickerIdx(stepPhotoPickerIdx === i ? null : i)}>
+                  <Plus className="w-4 h-4" /> {stepPhotoPickerIdx === i ? "Tutup" : it.photo ? "Ganti Foto" : "Tambah Foto"}
+                </GlowButton>
+              </div>
+              {stepPhotoPickerIdx === i && (
+                <PhotoPickerGrid selected={it.photo} multiple={false} onToggle={(name) => { updateStep(i, "photo", name); setStepPhotoPickerIdx(null); }} />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <GlowButton variant="ghost" onClick={addStep}><Plus className="w-4 h-4" /> Tambah Langkah</GlowButton>
+          <GlowButton onClick={saveSteps}><Check className="w-4 h-4" /> {saved === "steps" ? "Tersimpan!" : "Simpan Steps"}</GlowButton>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-[#C6A15B]" /> Statistik / Angka Pencapaian ({editLang.toUpperCase()})</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Angka ini akan "berjalan" naik (count-up) saat pengunjung scroll ke section ini.</p>
+        <div className="space-y-3 mb-3">
+          {statsDraft.map((it, i) => (
+            <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4 space-y-2">
+              <div className="grid grid-cols-3 gap-2">
+                <input type="number" placeholder="Nilai" value={it.value} onChange={(e) => updateStat(i, "value", Number(e.target.value))} className={inputCls} />
+                <input type="number" placeholder="Desimal (0/1)" value={it.decimals} onChange={(e) => updateStat(i, "decimals", Number(e.target.value))} className={inputCls} />
+                <input placeholder="Sufiks (+ / ★)" value={it.suffix} onChange={(e) => updateStat(i, "suffix", e.target.value)} className={inputCls} />
+              </div>
+              <div className="flex items-center gap-2">
+                <input placeholder="Label (contoh: Tamu Bahagia)" value={it.label} onChange={(e) => updateStat(i, "label", e.target.value)} className={inputCls + " flex-1"} />
+                <button onClick={() => removeStat(i)} className="text-[#6b6a72] hover:text-red-400 shrink-0"><Trash2 className="w-4 h-4" /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <GlowButton variant="ghost" onClick={addStat}><Plus className="w-4 h-4" /> Tambah Statistik</GlowButton>
+          <GlowButton onClick={saveStats}><Check className="w-4 h-4" /> {saved === "stats" ? "Tersimpan!" : "Simpan Statistik"}</GlowButton>
+        </div>
+      </div>
+
+      {/* Guest Gallery */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><FileText className="w-4 h-4 text-[#C6A15B]" /> Galeri Hasil Karya Tamu</h3>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5">
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-4">
+            {guestGalleryPhotos.length === 0 && <div className="col-span-full text-center text-sm text-[#6b6a72] py-4">Belum ada foto.</div>}
+            {guestGalleryPhotos.map((name) => (
+              <div key={name} className="relative aspect-square rounded-lg overflow-hidden group">
+                <img src={photo(name)} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => toggleGuestPhoto(name)} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 rounded-full p-1 text-white transition-colors"><X className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
+          <GlowButton variant="ghost" onClick={() => setGuestPickerOpen((v) => !v)}><Plus className="w-4 h-4" /> {guestPickerOpen ? "Tutup Pilihan Foto" : "Tambah Foto"}</GlowButton>
+          {guestPickerOpen && <div className="mt-4"><PhotoPickerGrid selected={guestGalleryPhotos} multiple={true} onToggle={toggleGuestPhoto} /></div>}
+        </div>
+      </div>
+
+      {/* Before / After Slider */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#C6A15B]" /> Before / After Slider</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Foto "sebelum" (perak mentah/proses) dan "sesudah" (perhiasan jadi) untuk slider interaktif di homepage.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Foto "Sebelum"</label>
+            <PhotoPickerGrid selected={settings.beforeAfter && settings.beforeAfter.beforePhoto} multiple={false} onToggle={setBeforePhoto} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Foto "Sesudah"</label>
+            <PhotoPickerGrid selected={settings.beforeAfter && settings.beforeAfter.afterPhoto} multiple={false} onToggle={setAfterPhoto} />
+          </div>
+        </div>
+      </div>
+
+      {/* Instagram Strip */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Star className="w-4 h-4 text-[#C6A15B]" /> Instagram Strip</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Galeri ala Instagram + tombol "Follow" yang mengarah ke akun Instagram bisnis.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <div className="flex gap-2">
+            <input placeholder="@handle_instagram" value={instagramHandleDraft} onChange={(e) => setInstagramHandleDraft(e.target.value)} className={inputCls} />
+            <GlowButton onClick={saveInstagramHandle}><Check className="w-4 h-4" /> {saved === "instagram" ? "Tersimpan!" : "Simpan"}</GlowButton>
+          </div>
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {instagramPhotos.length === 0 && <div className="col-span-full text-center text-sm text-[#6b6a72] py-4">Belum ada foto.</div>}
+            {instagramPhotos.map((name) => (
+              <div key={name} className="relative aspect-square rounded-lg overflow-hidden group">
+                <img src={photo(name)} alt="" className="w-full h-full object-cover" />
+                <button onClick={() => toggleInstagramPhoto(name)} className="absolute top-1 right-1 bg-black/70 hover:bg-red-500 rounded-full p-1 text-white transition-colors"><X className="w-3 h-3" /></button>
+              </div>
+            ))}
+          </div>
+          <GlowButton variant="ghost" onClick={() => setInstagramPickerOpen((v) => !v)}><Plus className="w-4 h-4" /> {instagramPickerOpen ? "Tutup Pilihan Foto" : "Tambah Foto"}</GlowButton>
+          {instagramPickerOpen && <PhotoPickerGrid selected={instagramPhotos} multiple={true} onToggle={toggleInstagramPhoto} />}
+        </div>
+      </div>
+
+      {/* As Seen In */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#C6A15B]" /> As Seen In / Badges Kepercayaan</h3>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4">
+          {asSeenIn.length === 0 && <div className="px-4 py-6 text-center text-sm text-[#6b6a72]">Belum ada badge.</div>}
+          {asSeenIn.map((label, i) => (
+            <div key={i} className="flex items-center justify-between px-4 py-3 border-b border-[#2a2930] last:border-b-0">
+              <span className="text-sm text-[#E2E8F0]">{label}</span>
+              <button onClick={() => removeAsSeenIn(i)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <input placeholder="Contoh: Featured on TripAdvisor" value={asSeenInForm} onChange={(e) => setAsSeenInForm(e.target.value)} className={inputCls} />
+          <GlowButton onClick={addAsSeenIn}><Plus className="w-4 h-4" /> Tambah</GlowButton>
+        </div>
+      </div>
+
+      {/* Map Address */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><MapPin className="w-4 h-4 text-[#C6A15B]" /> Alamat untuk Peta</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Digunakan untuk menampilkan peta Google Maps embed dan link "Buka di Maps".</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <input value={mapAddressDraft} onChange={(e) => setMapAddressDraft(e.target.value)} className={inputCls} />
+          <GlowButton onClick={saveMapAddress}><Check className="w-4 h-4" /> {saved === "map" ? "Tersimpan!" : "Simpan Alamat"}</GlowButton>
+        </div>
+      </div>
+
+      {/* Countdown Promo */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Clock className="w-4 h-4 text-[#C6A15B]" /> Countdown Promo</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Batas waktu promo berjalan. Kosongkan tanggalnya (atau isi tanggal lampau) untuk menyembunyikan countdown dari homepage.</p>
+        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
+          <input type="datetime-local" value={promoDeadlineDraft ? promoDeadlineDraft.slice(0, 16) : ""} onChange={(e) => setPromoDeadlineDraft(e.target.value)} className={inputCls} />
+          <GlowButton onClick={savePromoDeadline}><Check className="w-4 h-4" /> {saved === "deadline" ? "Tersimpan!" : "Simpan Batas Waktu"}</GlowButton>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><MessageSquare className="w-4 h-4 text-[#C6A15B]" /> FAQ ({editLang.toUpperCase()})</h3>
+        <div className="space-y-3 mb-3">
+          {faqDraft.map((it, i) => (
+            <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <input placeholder="Pertanyaan" value={it.q} onChange={(e) => updateFaq(i, "q", e.target.value)} className={inputCls + " flex-1"} />
+                <button onClick={() => removeFaq(i)} className="text-[#6b6a72] hover:text-red-400 shrink-0"><Trash2 className="w-4 h-4" /></button>
+              </div>
+              <textarea placeholder="Jawaban" value={it.a} onChange={(e) => updateFaq(i, "a", e.target.value)} rows={2} className={taCls} />
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <GlowButton variant="ghost" onClick={addFaq}><Plus className="w-4 h-4" /> Tambah FAQ</GlowButton>
+          <GlowButton onClick={saveFaq}><Check className="w-4 h-4" /> {saved === "faq" ? "Tersimpan!" : "Simpan FAQ"}</GlowButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN PAGE (assembled)                                             */
+/* ------------------------------------------------------------------ */
+
+function AdminPage({ mode, setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps }) {
+  const [tab, setTab] = useState("content");
+
+  return (
+    <div className="min-h-screen bg-[#16151A] flex flex-col">
+      <header className="sticky top-0 z-40 backdrop-blur-md bg-[#16151A]/85 border-b border-[#2a2930] min-h-16 flex flex-wrap items-center justify-between gap-y-2 px-5 sm:px-8 py-2">
+        <div className="flex items-center gap-2 shrink-0">
+          <img src={LOGO_SRC} alt="Family Silver Class Bali" className="w-9 h-9 rounded-full object-cover border border-[#3a3940]" />
+          <span className="hidden sm:inline text-[#E2E8F0] font-semibold text-sm whitespace-nowrap">Family Silver Class Bali</span>
+          <span className="text-[10px] uppercase tracking-wider bg-[#C6A15B]/10 text-[#C6A15B] border border-[#C6A15B]/30 rounded-full px-2 py-0.5 ml-2 whitespace-nowrap">Admin</span>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
+          <ModeSwitcher mode={mode} setMode={setMode} />
+        </div>
+      </header>
+
+      <AdminMobileTabs tab={tab} setTab={setTab} />
+
+      <div className="flex flex-1">
+        <AdminSidebar tab={tab} setTab={setTab} />
+        <main className="flex-1 p-5 sm:p-8 overflow-x-auto">
+          {tab === "content" && <ContentEditor content={content} setContent={setContent} settings={settings} setSettings={setSettings} extras={extras} setExtras={setExtras} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} lang={lang} />}
+          {tab === "packages" && <PackagesManager catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} content={content} setContent={setContent} lang={lang} />}
+          {tab === "homepage" && <HomepageManager content={content} setContent={setContent} settings={settings} setSettings={setSettings} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} lang={lang} />}
+          {tab === "reviews" && <ReviewsManager reviews={reviews} setReviews={setReviews} settings={settings} setSettings={setSettings} />}
+          {tab === "reservations" && <ReservationsManager reservations={reservations} setReservations={setReservations} />}
+          {tab === "akunting" && <AccountingManager transactions={accountingTransactions} setTransactions={setAccountingTransactions} operational={accountingOperational} setOperational={setAccountingOperational} vendors={accountingVendors} setVendors={setAccountingVendors} apps={accountingApps} setApps={setAccountingApps} />}
+          {tab === "seo" && <SEOHealth />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ROOT APP                                                           */
+/* ------------------------------------------------------------------ */
+
+export default function FamilySilverClassBaliApp() {
+  const [mode, setMode] = useState("customer");
+  const [page, setPage] = useState("home");
+  const [lang, setLang] = useState("en");
+  const [currency, setCurrency] = useState("USD");
+  const [content, setContent] = useState(buildInitialContent);
+  const [catalog, setCatalog] = useState(initialCatalog);
+  const [perGram, setPerGram] = useState(initialPerGram);
+  const [extras, setExtras] = useState(initialExtras);
+  const [settings, setSettings] = useState(initialSettings);
+  const [galleryPhotos, setGalleryPhotos] = useState(initialGalleryPhotos);
+  const [reviews, setReviews] = useState(initialReviews);
+  const [reservations, setReservations] = useState(initialReservations);
+  const [heroPhotos, setHeroPhotos] = useState(initialHeroPhotos);
+  const [guestGalleryPhotos, setGuestGalleryPhotos] = useState(initialGuestGalleryPhotos);
+  const [instructors, setInstructors] = useState(initialInstructors);
+  const [asSeenIn, setAsSeenIn] = useState(initialAsSeenIn);
+  const [instagramPhotos, setInstagramPhotos] = useState(initialInstagramPhotos);
+  const [accountingTransactions, setAccountingTransactions] = useState(initialAccountingTransactions);
+  const [accountingOperational, setAccountingOperational] = useState(initialAccountingOperational);
+  const [accountingVendors, setAccountingVendors] = useState(initialAccountingVendors);
+  const [accountingApps, setAccountingApps] = useState(initialAccountingApps);
+
+  return (
+    <div className="font-sans antialiased">
+      <style>{GLOBAL_ANIMATION_CSS}</style>
+      {mode === "customer" ? (
+        <CustomerPage page={page} setPage={setPage} mode={mode} setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} />
+      ) : (
+        <AdminPage mode={mode} setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} />
+      )}
+    </div>
+  );
+}
