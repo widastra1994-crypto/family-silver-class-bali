@@ -20,8 +20,9 @@ import {
   MessageSquare, Calendar, TrendingUp, Check, Edit3, Send, Plus, Globe,
   Code2, Eye, Clock, CheckCircle2, AlertTriangle, BarChart3,
   FileText, Coins, Hammer, ShieldCheck, ChevronLeft, ChevronRight, Minus,
-  ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown,
+  ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown, LogOut,
 } from "https://esm.sh/lucide-react@0.446.0?deps=react@18.3.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 /* ------------------------------------------------------------------ */
 /*  ASSETS — this demo loads PHOTO/ and the logo from the same folder   */
@@ -31,6 +32,15 @@ import {
 const ASSET_BASE = "./";
 const photo = (name) => encodeURI(ASSET_BASE + "PHOTO/" + name);
 const LOGO_SRC = encodeURI(ASSET_BASE + "logo website.png");
+
+/* ------------------------------------------------------------------ */
+/*  SUPABASE — admin auth. Hardcoded here since this demo file has no   */
+/*  build step / env vars. The anon key is safe to expose client-side.  */
+/* ------------------------------------------------------------------ */
+
+const SUPABASE_URL = "https://syjhggvoutkoxqvbsler.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5amhnZ3ZvdXRrb3hxdmJzbGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4MzU1ODksImV4cCI6MjEwNTQxMTU4OX0.SRbRBHKD5oC6Ju825pRVyQTu4ycWa_OGUnjtRON3GjQ";
+const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 const initialHeroPhotos = [
   "FAMILY SILVER CLASS_0001_.jpg",
@@ -1089,6 +1099,56 @@ function ModeSwitcher({ mode, setMode }) {
       >
         <LayoutDashboard className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Admin CMS</span>
       </button>
+    </div>
+  );
+}
+
+function LoginGate({ onCancel }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password) return;
+    if (!supabase) { setError("Supabase belum dikonfigurasi (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY kosong)."); return; }
+    setError("");
+    setLoading(true);
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    setLoading(false);
+    if (signInError) setError("Email atau password salah.");
+  };
+
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+
+  return (
+    <div className="min-h-screen bg-[#16151A] flex items-center justify-center p-5">
+      <div className="w-full max-w-sm bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <img src={LOGO_SRC} alt="Family Silver Class Bali" className="w-9 h-9 rounded-full object-cover border border-[#3a3940]" />
+          <div>
+            <p className="text-[#E2E8F0] font-semibold text-sm">Admin Login</p>
+            <p className="text-[10px] text-[#6b6a72]">Family Silver Class Bali</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <input
+            type="email" placeholder="Email" value={email} autoFocus
+            onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            className={inputCls}
+          />
+          <input
+            type="password" placeholder="Password" value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            className={inputCls}
+          />
+          {error && <p className="text-xs text-red-400">{error}</p>}
+          <GlowButton className="w-full" onClick={handleLogin}>{loading ? "Memproses..." : "Masuk"}</GlowButton>
+          <button onClick={onCancel} className="w-full text-xs text-[#9a99a1] hover:text-[#E2E8F0] text-center py-2">Kembali ke halaman utama</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -4845,6 +4905,13 @@ function AdminPage({ mode, setMode, lang, setLang, currency, setCurrency, conten
         <div className="flex items-center gap-2 shrink-0">
           <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
           <ModeSwitcher mode={mode} setMode={setMode} />
+          <button
+            onClick={() => { if (supabase) supabase.auth.signOut(); setMode("customer"); }}
+            title="Logout"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border border-[#3a3940] text-[#9a99a1] hover:text-red-400 hover:border-red-400/40 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Logout</span>
+          </button>
         </div>
       </header>
 
@@ -4872,6 +4939,8 @@ function AdminPage({ mode, setMode, lang, setLang, currency, setCurrency, conten
 
 function FamilySilverClassBaliApp() {
   const [mode, setMode] = useState("customer");
+  const [session, setSession] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [page, setPage] = useState("home");
   const [lang, setLang] = useState("en");
   const [currency, setCurrency] = useState("USD");
@@ -4893,11 +4962,27 @@ function FamilySilverClassBaliApp() {
   const [accountingVendors, setAccountingVendors] = useState(initialAccountingVendors);
   const [accountingApps, setAccountingApps] = useState(initialAccountingApps);
 
+  useEffect(() => {
+    if (!supabase) { setAuthChecked(true); return; }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthChecked(true);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
   return (
     <div className="font-sans antialiased">
       <style>{GLOBAL_ANIMATION_CSS}</style>
       {mode === "customer" ? (
         <CustomerPage page={page} setPage={setPage} mode={mode} setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} />
+      ) : !authChecked ? (
+        <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memeriksa sesi...</div>
+      ) : !session ? (
+        <LoginGate onCancel={() => setMode("customer")} />
       ) : (
         <AdminPage mode={mode} setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} />
       )}
