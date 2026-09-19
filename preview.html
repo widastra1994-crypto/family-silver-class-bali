@@ -2825,9 +2825,9 @@ function PackageEditModal({ pkg, onClose, content, setContent, catalog, setCatal
   };
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-2xl bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-center justify-between rounded-t-2xl">
           <h3 className="text-lg font-semibold text-[#E2E8F0]">Edit Paket: {pkgName(pkg, editLang)}</h3>
           <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
@@ -3518,9 +3518,9 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
   };
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-3xl bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-center justify-between rounded-t-2xl">
           <h3 className="text-lg font-semibold text-[#E2E8F0]">{form.id ? "Edit Rekapan" : "Tambah Rekapan"}</h3>
           <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
@@ -3789,9 +3789,9 @@ function AccountingOperationalModal({ open, onClose, onSave, initial }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[65] flex items-start sm:items-center justify-center p-4 py-8 overflow-y-auto" onClick={onClose}>
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
-      <div className="relative w-full max-w-md bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-[#1c1b21] border border-[#2a2930] rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-[#E2E8F0]">{form.id ? "Edit Operasional" : "Tambah Operasional"}</h3>
           <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
