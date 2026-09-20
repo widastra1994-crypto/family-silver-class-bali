@@ -2654,12 +2654,12 @@ function Footer({ lang }) {
 function BlogListPage({ posts, onOpenPost }) {
   return (
     <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
-      <SectionLabel icon={FileText}>Tips & Cerita</SectionLabel>
+      <SectionLabel icon={FileText}>Tips & Stories</SectionLabel>
       <h1 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">Blog</h1>
-      <p className="text-[#9a99a1] mb-10 max-w-xl">Tips seputar Bali, perhiasan perak, dan cerita di balik Family Silver Class.</p>
+      <p className="text-[#9a99a1] mb-10 max-w-xl">Tips about Bali, silver jewelry, and stories from behind the scenes at Family Silver Class.</p>
 
       {(!posts || posts.length === 0) ? (
-        <p className="text-sm text-[#6b6a72]">Belum ada artikel.</p>
+        <p className="text-sm text-[#6b6a72]">No articles yet.</p>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map((p) => (
@@ -2676,7 +2676,7 @@ function BlogListPage({ posts, onOpenPost }) {
               <div className="bg-[#1c1b21] p-4 flex-1 flex flex-col">
                 <h3 className="text-[#E2E8F0] font-semibold mb-1">{p.title}</h3>
                 <p className="text-xs text-[#9a99a1] flex-1">{p.excerpt}</p>
-                <span className="text-xs text-[#C6A15B] mt-3 font-semibold">Baca selengkapnya →</span>
+                <span className="text-xs text-[#C6A15B] mt-3 font-semibold">Read more →</span>
               </div>
             </button>
           ))}
@@ -2690,15 +2690,15 @@ function BlogPostPage({ post, onBack }) {
   if (!post) {
     return (
       <div className="max-w-3xl mx-auto px-5 sm:px-8 py-20 text-center">
-        <p className="text-[#9a99a1] mb-4">Artikel tidak ditemukan.</p>
-        <GlowButton onClick={onBack}>Kembali ke Blog</GlowButton>
+        <p className="text-[#9a99a1] mb-4">Article not found.</p>
+        <GlowButton onClick={onBack}>Back to Blog</GlowButton>
       </div>
     );
   }
   return (
     <div className="max-w-3xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
       <button onClick={onBack} className="text-xs text-[#9a99a1] hover:text-[#C6A15B] mb-6 inline-flex items-center gap-1">
-        <ChevronLeft className="w-3.5 h-3.5" /> Kembali ke Blog
+        <ChevronLeft className="w-3.5 h-3.5" /> Back to Blog
       </button>
       {post.coverPhoto && (
         <div className="aspect-[16/9] rounded-2xl overflow-hidden border border-[#2a2930] mb-6">
