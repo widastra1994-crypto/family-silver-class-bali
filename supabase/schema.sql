@@ -71,6 +71,8 @@ create table if not exists reservations (
   created_at timestamptz not null default now()
 );
 
+alter table reservations add column if not exists slot text;
+
 alter table reservations enable row level security;
 
 grant select, insert, update, delete on reservations to anon, authenticated;
@@ -103,6 +105,32 @@ create policy "admin_delete_reservations" on reservations
   for delete
   to authenticated
   using (true);
+
+-- Let the Admin CMS get live "new booking" updates via Supabase Realtime
+-- without needing to poll/refresh the page. Wrapped so it's safe to re-run.
+do $$
+begin
+  alter publication supabase_realtime add table reservations;
+exception when duplicate_object then
+  null;
+end $$;
+
+-- Safe way for the public booking form to check slot capacity without
+-- ever exposing raw customer rows (name/email/phone) to anonymous visitors:
+-- returns only aggregated pax counts per time slot for one date.
+create or replace function get_slot_booked_pax(p_date text)
+returns table(slot text, total_pax bigint)
+language sql
+security definer
+set search_path = public
+as $$
+  select slot, sum(pax) as total_pax
+  from reservations
+  where date = p_date and slot is not null
+  group by slot;
+$$;
+
+grant execute on function get_slot_booked_pax(text) to anon, authenticated;
 
 -- 3) Storage bucket for admin-uploaded photos (Hero Carousel, Homepage
 --    galleries, package covers, instructor photos, step-by-step photos,

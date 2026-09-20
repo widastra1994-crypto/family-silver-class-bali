@@ -78,7 +78,7 @@ async function uploadPhotoFile(file) {
 
 async function loadReservationsTable() {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("reservations").select("id, name, date, pax, status").order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("reservations").select("id, name, date, slot, pax, status").order("created_at", { ascending: false });
   if (error || !data) return null;
   return data;
 }
@@ -701,6 +701,7 @@ const initialPerGram = 45000;
 
 const initialSettings = {
   whatsappNumber: "6281234567890",
+  maxPaxPerSlot: 6,
   googleRating: 5.0,
   googleReviewCount: 215,
   googleLastUpdated: "2026-09-19",
@@ -1351,10 +1352,32 @@ function Gallery({ lang, galleryPhotos }) {
 /*  CUSTOMER — BOOKING MODAL (collects details, sends to WhatsApp)      */
 /* ------------------------------------------------------------------ */
 
-function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAreas, slots, jewelryLabel, participants, extraGrams, selectedExtraNames, totalPrice, onConfirm }) {
+function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAreas, slots, maxPaxPerSlot, jewelryLabel, participants, extraGrams, selectedExtraNames, totalPrice, onConfirm }) {
   const t = (k, v) => tr(lang, k, v);
   const [form, setForm] = useState({ name: "", email: "", whatsapp: "", date: "", slot: "", meetOption: "studio", pickupAreaId: "", pickupNote: "" });
   const [error, setError] = useState(false);
+  const [slotBookedPax, setSlotBookedPax] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!form.date || !supabase) { setSlotBookedPax({}); return; }
+    supabase.rpc("get_slot_booked_pax", { p_date: form.date }).then(({ data, error: rpcError }) => {
+      if (cancelled) return;
+      if (rpcError) { setSlotBookedPax({}); return; }
+      const map = {};
+      (data || []).forEach((row) => { map[row.slot] = Number(row.total_pax) || 0; });
+      setSlotBookedPax(map);
+    });
+    return () => { cancelled = true; };
+  }, [form.date]);
+
+  const limit = Number(maxPaxPerSlot) || 6;
+  const isSlotFull = (s) => (slotBookedPax[s] || 0) + participants > limit;
+
+  useEffect(() => {
+    if (form.slot && isSlotFull(form.slot)) setForm((f) => ({ ...f, slot: "" }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotBookedPax]);
 
   if (!open) return null;
 
@@ -1366,7 +1389,7 @@ function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAre
   const grandTotal = totalPrice + pickupFee;
 
   const handleSubmit = () => {
-    if (!form.name || !form.email || !form.whatsapp || !form.date || !form.slot || (form.meetOption === "pickup" && (!form.pickupAreaId || !form.pickupNote))) {
+    if (!form.name || !form.email || !form.whatsapp || !form.date || !form.slot || isSlotFull(form.slot) || (form.meetOption === "pickup" && (!form.pickupAreaId || !form.pickupNote))) {
       setError(true);
       return;
     }
@@ -1390,7 +1413,7 @@ function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAre
     const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
     const url = "https://wa.me/" + digits + "?text=" + encodeURIComponent(message);
     window.open(url, "_blank", "noopener,noreferrer");
-    onConfirm({ name: form.name, date: form.date, pax: participants });
+    onConfirm({ name: form.name, date: form.date, slot: form.slot, pax: participants });
     setForm({ name: "", email: "", whatsapp: "", date: "", slot: "", meetOption: "studio", pickupAreaId: "", pickupNote: "" });
     onClose();
   };
@@ -1438,7 +1461,11 @@ function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAre
               <label className="text-[10px] uppercase tracking-wider text-[#6b6a72] mb-1 block">{t("form_slot")}</label>
               <select value={form.slot} onChange={field((v) => ({ slot: v }))} className={inputClass}>
                 <option value="">{t("form_slot_placeholder")}</option>
-                {slots.map((s) => (<option key={s} value={s}>{s}</option>))}
+                {slots.map((s) => (
+                  <option key={s} value={s} disabled={isSlotFull(s)}>
+                    {s}{isSlotFull(s) ? " — Penuh" : ""}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -1631,6 +1658,7 @@ function PackageCalculator({ catalog, perGram, extras, settings, lang, currency,
         currency={currency}
         whatsappNumber={settings.whatsappNumber}
         pickupAreas={settings.pickupAreas}
+        maxPaxPerSlot={settings.maxPaxPerSlot}
         slots={type.slots && type.slots.length ? type.slots : DEFAULT_SLOTS}
         jewelryLabel={pkgName(type, lang)}
         participants={participants}
@@ -2623,7 +2651,7 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
   const goPackages = () => setPage("packages");
 
   const onBookingConfirm = (data) => {
-    const newReservation = { id: "RSV-" + Date.now(), name: data.name, date: data.date, pax: data.pax, status: "Pending" };
+    const newReservation = { id: "RSV-" + Date.now(), name: data.name, date: data.date, slot: data.slot || null, pax: data.pax, status: "Pending" };
     setReservations((prev) => [newReservation, ...prev]);
     if (supabase) {
       supabase.from("reservations").insert(newReservation).then(({ error }) => {
@@ -3001,7 +3029,7 @@ function PackagesManager({ catalog, setCatalog, perGram, setPerGram, content, se
 function ContentEditor({ content, setContent, settings, setSettings, extras, setExtras, galleryPhotos, setGalleryPhotos, lang }) {
   const [editLang, setEditLang] = useState(lang);
   const [draft, setDraft] = useState(content[editLang]);
-  const [settingsDraft, setSettingsDraft] = useState({ whatsappNumber: settings.whatsappNumber });
+  const [settingsDraft, setSettingsDraft] = useState({ whatsappNumber: settings.whatsappNumber, maxPaxPerSlot: settings.maxPaxPerSlot || 6 });
   const [directionsDraft, setDirectionsDraft] = useState(content[editLang].directions);
   const [extraForm, setExtraForm] = useState({ name: "", price: "" });
   const [areaForm, setAreaForm] = useState({ name: "", price: "" });
@@ -3021,7 +3049,7 @@ function ContentEditor({ content, setContent, settings, setSettings, extras, set
   };
   const saveContent = () => { setContent({ ...content, [editLang]: draft }); setSaved(true); setTimeout(() => setSaved(false), 2000); };
   const saveSettings = () => {
-    setSettings({ ...settings, whatsappNumber: settingsDraft.whatsappNumber.replace(/[^0-9]/g, "") });
+    setSettings({ ...settings, whatsappNumber: settingsDraft.whatsappNumber.replace(/[^0-9]/g, ""), maxPaxPerSlot: Number(settingsDraft.maxPaxPerSlot) || 6 });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -3136,7 +3164,17 @@ function ContentEditor({ content, setContent, settings, setSettings, extras, set
             />
             <p className="text-[11px] text-[#6b6a72] mt-1.5">Format internasional tanpa "+" atau "0" di depan, contoh: 6281234567890</p>
           </div>
-          <GlowButton onClick={saveSettings}><Check className="w-4 h-4" /> Simpan Nomor WhatsApp</GlowButton>
+          <div>
+            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Maksimal Peserta per Slot Waktu</label>
+            <input
+              type="number" min="1"
+              value={settingsDraft.maxPaxPerSlot}
+              onChange={(e) => setSettingsDraft({ ...settingsDraft, maxPaxPerSlot: e.target.value })}
+              className="w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors"
+            />
+            <p className="text-[11px] text-[#6b6a72] mt-1.5">Jika total peserta yang sudah booking di satu slot waktu mencapai angka ini, slot tersebut otomatis tidak bisa dipilih lagi ("Penuh") oleh tamu baru di tanggal yang sama.</p>
+          </div>
+          <GlowButton onClick={saveSettings}><Check className="w-4 h-4" /> Simpan Pengaturan Booking</GlowButton>
         </div>
       </div>
 
@@ -3366,6 +3404,23 @@ function ReviewsManager({ reviews, setReviews, settings, setSettings }) {
 /* ------------------------------------------------------------------ */
 
 function ReservationsManager({ reservations, setReservations }) {
+  const [newAlert, setNewAlert] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase
+      .channel("reservations-live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "reservations" }, (payload) => {
+        const row = payload.new;
+        setReservations((prev) => (prev.some((r) => r.id === row.id) ? prev : [row, ...prev]));
+        setNewAlert(row);
+        setTimeout(() => setNewAlert((cur) => (cur && cur.id === row.id ? null : cur)), 8000);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const cycleStatus = (id) => {
     const target = reservations.find((r) => r.id === id);
     const nextStatus = target && target.status === "Confirmed" ? "Pending" : "Confirmed";
@@ -3390,16 +3445,24 @@ function ReservationsManager({ reservations, setReservations }) {
       <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
         <Calendar className="w-4 h-4 text-[#C6A15B]" /> Manajemen Reservasi
       </h2>
-      <p className="text-xs text-[#9a99a1] mb-5">Klik status untuk mengganti Confirmed / Pending.</p>
+      <p className="text-xs text-[#9a99a1] mb-5">Klik status untuk mengganti Confirmed / Pending. Halaman ini otomatis update saat ada booking baru masuk.</p>
 
-      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden">
-        <div className="grid grid-cols-[1fr_1fr_0.6fr_0.8fr_0.4fr] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72]">
-          <span>Nama Tamu</span><span>Tanggal Kelas</span><span>Peserta</span><span>Status</span><span></span>
+      {newAlert && (
+        <div className="mb-4 bg-green-500/10 border border-green-500/30 text-green-300 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          Booking baru masuk: <strong>{newAlert.name}</strong> — {newAlert.date}{newAlert.slot ? " · " + newAlert.slot : ""} ({newAlert.pax} pax)
+        </div>
+      )}
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
+        <div className="grid grid-cols-[1fr_0.9fr_0.6fr_0.5fr_0.8fr_0.4fr] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[560px]">
+          <span>Nama Tamu</span><span>Tanggal Kelas</span><span>Slot</span><span>Peserta</span><span>Status</span><span></span>
         </div>
         {reservations.map((r) => (
-          <div key={r.id} className="grid grid-cols-[1fr_1fr_0.6fr_0.8fr_0.4fr] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm">
+          <div key={r.id} className="grid grid-cols-[1fr_0.9fr_0.6fr_0.5fr_0.8fr_0.4fr] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm min-w-[560px]">
             <span className="text-[#E2E8F0]">{r.name}</span>
             <span className="text-[#9a99a1]">{r.date}</span>
+            <span className="text-[#9a99a1]">{r.slot || "-"}</span>
             <span className="text-[#9a99a1] flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {r.pax}</span>
             <button onClick={() => cycleStatus(r.id)} className={"text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 w-fit transition-colors " + (r.status === "Confirmed" ? "bg-green-500/10 text-green-400 border border-green-500/30" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/30")}>
               {r.status === "Confirmed" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
