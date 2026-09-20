@@ -2028,7 +2028,34 @@ function AboutSection({ lang, about }) {
 
 function TeamSection({ lang, instructors }) {
   const t = (k, v) => tr(lang, k, v);
-  if (!instructors || instructors.length === 0) return null;
+  const [itemsPerView, setItemsPerView] = useState(3);
+  const [slide, setSlide] = useState(0);
+
+  useEffect(() => {
+    const calc = () => {
+      const w = window.innerWidth;
+      setItemsPerView(w < 640 ? 1 : w < 1024 ? 2 : 3);
+    };
+    calc();
+    window.addEventListener("resize", calc);
+    return () => window.removeEventListener("resize", calc);
+  }, []);
+
+  const count = instructors ? instructors.length : 0;
+  const maxSlide = Math.max(0, count - itemsPerView);
+
+  useEffect(() => {
+    setSlide((s) => Math.min(s, maxSlide));
+  }, [maxSlide]);
+
+  useEffect(() => {
+    if (maxSlide === 0) return;
+    const id = setInterval(() => setSlide((s) => (s + 1 > maxSlide ? 0 : s + 1)), 4000);
+    return () => clearInterval(id);
+  }, [maxSlide]);
+
+  if (count === 0) return null;
+
   return (
     <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
       <Reveal>
@@ -2036,19 +2063,40 @@ function TeamSection({ lang, instructors }) {
         <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("team_title")}</h2>
         <p className="text-[#9a99a1] mb-10 max-w-xl">{t("team_subtitle")}</p>
       </Reveal>
-      <div className="grid grid-cols-3 gap-3 sm:gap-6">
-        {instructors.map((m, i) => (
-          <Reveal key={m.id} delay={i * 100}>
-            <div className="text-center group">
-              <div className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden border border-[#2a2930] group-hover:border-[#C6A15B]/50 transition-colors mb-2 sm:mb-4">
-                <img src={photo(m.photo)} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+
+      <Reveal>
+        <div className="overflow-hidden">
+          <div
+            className="flex transition-transform duration-700 ease-out"
+            style={{ transform: "translateX(-" + slide * (100 / itemsPerView) + "%)" }}
+          >
+            {instructors.map((m) => (
+              <div key={m.id} className="shrink-0 px-2 sm:px-3" style={{ flex: "0 0 " + 100 / itemsPerView + "%" }}>
+                <div className="text-center group">
+                  <div className="aspect-square rounded-2xl overflow-hidden border border-[#2a2930] group-hover:border-[#C6A15B]/50 transition-colors mb-4">
+                    <img src={photo(m.photo)} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <h3 className="text-[#E2E8F0] font-semibold">{m.name}</h3>
+                  <p className="text-xs text-[#C6A15B] mt-0.5">{m.role}</p>
+                </div>
               </div>
-              <h3 className="text-xs sm:text-base text-[#E2E8F0] font-semibold leading-tight">{m.name}</h3>
-              <p className="text-[10px] sm:text-xs text-[#C6A15B] mt-0.5">{m.role}</p>
-            </div>
-          </Reveal>
-        ))}
-      </div>
+            ))}
+          </div>
+        </div>
+      </Reveal>
+
+      {maxSlide > 0 && (
+        <div className="flex items-center justify-center gap-2 mt-6">
+          {Array.from({ length: maxSlide + 1 }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setSlide(i)}
+              aria-label={"Go to slide " + (i + 1)}
+              className={"h-2 rounded-full transition-all " + (i === slide ? "w-6 bg-[#C6A15B]" : "w-2 bg-[#3a3940]")}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
