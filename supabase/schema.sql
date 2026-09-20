@@ -34,7 +34,8 @@ create policy "public_read_content_keys" on app_state
   using (
     key in (
       'content','catalog','perGram','extras','settings','galleryPhotos',
-      'reviews','heroPhotos','guestGalleryPhotos','instructors','asSeenIn','instagramPhotos'
+      'reviews','heroPhotos','guestGalleryPhotos','instructors','asSeenIn','instagramPhotos',
+      'blogPosts'
     )
   );
 

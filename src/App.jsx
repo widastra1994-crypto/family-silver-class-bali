@@ -39,7 +39,7 @@ const APP_STATE_KEYS = [
   "content", "catalog", "perGram", "extras", "settings", "galleryPhotos",
   "reviews", "heroPhotos", "guestGalleryPhotos", "instructors", "asSeenIn",
   "instagramPhotos", "accountingTransactions", "accountingOperational",
-  "accountingVendors", "accountingApps",
+  "accountingVendors", "accountingApps", "blogPosts",
 ];
 
 async function loadAppState() {
@@ -906,6 +906,8 @@ const initialReviews = [
     text: "Best souvenir from Bali by far — a piece of jewelry I made with my own hands. The certificate of completion is a nice touch too.", reply: null },
 ];
 
+const initialBlogPosts = [];
+
 const initialReservations = [
   { id: "RSV-1042", name: "Michael Chen", date: "2026-09-22", pax: 2, status: "Confirmed" },
   { id: "RSV-1043", name: "Putu Ayu Lestari", date: "2026-09-23", pax: 4, status: "Pending" },
@@ -1201,6 +1203,7 @@ function CustomerHeader({ page, setPage, lang, setLang, currency, setCurrency })
           <button onClick={() => setPage("packages")} className={"hover:text-[#E2E8F0] transition-colors " + (page === "packages" ? "text-[#C6A15B]" : "")}>{t("nav_packages")}</button>
           <button onClick={() => goHome("reviews")} className="hover:text-[#E2E8F0] transition-colors">{t("nav_reviews")}</button>
           <button onClick={() => goHome("location")} className="hover:text-[#E2E8F0] transition-colors">{t("nav_location")}</button>
+          <button onClick={() => setPage("blog")} className={"hover:text-[#E2E8F0] transition-colors " + (page === "blog" || page === "blog-post" ? "text-[#C6A15B]" : "")}>Blog</button>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -1221,6 +1224,7 @@ function CustomerHeader({ page, setPage, lang, setLang, currency, setCurrency })
           <button onClick={() => { setPage("packages"); setMenuOpen(false); }} className="text-left">{t("nav_packages")}</button>
           <button onClick={() => goHome("reviews")} className="text-left">{t("nav_reviews")}</button>
           <button onClick={() => goHome("location")} className="text-left">{t("nav_location")}</button>
+          <button onClick={() => { setPage("blog"); setMenuOpen(false); }} className="text-left">Blog</button>
         </div>
       )}
     </header>
@@ -2644,11 +2648,76 @@ function Footer({ lang }) {
 }
 
 /* ------------------------------------------------------------------ */
+/*  CUSTOMER — BLOG / ARTICLES                                         */
+/* ------------------------------------------------------------------ */
+
+function BlogListPage({ posts, onOpenPost }) {
+  return (
+    <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <SectionLabel icon={FileText}>Tips & Cerita</SectionLabel>
+      <h1 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">Blog</h1>
+      <p className="text-[#9a99a1] mb-10 max-w-xl">Tips seputar Bali, perhiasan perak, dan cerita di balik Family Silver Class.</p>
+
+      {(!posts || posts.length === 0) ? (
+        <p className="text-sm text-[#6b6a72]">Belum ada artikel.</p>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {posts.map((p) => (
+            <button key={p.id} onClick={() => onOpenPost(p.id)} className="text-left rounded-2xl overflow-hidden border border-[#2a2930] hover:border-[#C6A15B]/50 transition-colors flex flex-col group">
+              {p.coverPhoto ? (
+                <div className="aspect-[16/10] overflow-hidden">
+                  <img src={photo(p.coverPhoto)} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                </div>
+              ) : (
+                <div className="aspect-[16/10] bg-gradient-to-br from-[#2a2930] to-[#1c1b21] flex items-center justify-center">
+                  <FileText className="w-10 h-10 text-[#C6A15B]/40" />
+                </div>
+              )}
+              <div className="bg-[#1c1b21] p-4 flex-1 flex flex-col">
+                <h3 className="text-[#E2E8F0] font-semibold mb-1">{p.title}</h3>
+                <p className="text-xs text-[#9a99a1] flex-1">{p.excerpt}</p>
+                <span className="text-xs text-[#C6A15B] mt-3 font-semibold">Baca selengkapnya →</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BlogPostPage({ post, onBack }) {
+  if (!post) {
+    return (
+      <div className="max-w-3xl mx-auto px-5 sm:px-8 py-20 text-center">
+        <p className="text-[#9a99a1] mb-4">Artikel tidak ditemukan.</p>
+        <GlowButton onClick={onBack}>Kembali ke Blog</GlowButton>
+      </div>
+    );
+  }
+  return (
+    <div className="max-w-3xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
+      <button onClick={onBack} className="text-xs text-[#9a99a1] hover:text-[#C6A15B] mb-6 inline-flex items-center gap-1">
+        <ChevronLeft className="w-3.5 h-3.5" /> Kembali ke Blog
+      </button>
+      {post.coverPhoto && (
+        <div className="aspect-[16/9] rounded-2xl overflow-hidden border border-[#2a2930] mb-6">
+          <img src={photo(post.coverPhoto)} alt={post.title} className="w-full h-full object-cover" />
+        </div>
+      )}
+      <h1 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-6">{post.title}</h1>
+      <div className="text-sm text-[#c7c6cc] leading-relaxed whitespace-pre-wrap">{post.body}</div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  CUSTOMER PAGE (assembled)                                          */
 /* ------------------------------------------------------------------ */
 
-function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, content, catalog, perGram, extras, reviews, settings, galleryPhotos, guestGalleryPhotos, instructors, asSeenIn, heroPhotos, instagramPhotos, setReservations }) {
+function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, content, catalog, perGram, extras, reviews, settings, galleryPhotos, guestGalleryPhotos, instructors, asSeenIn, heroPhotos, instagramPhotos, setReservations, blogPosts }) {
   const goPackages = () => setPage("packages");
+  const [selectedPostId, setSelectedPostId] = useState(null);
 
   const onBookingConfirm = (data) => {
     const newReservation = { id: "RSV-" + Date.now(), name: data.name, date: data.date, slot: data.slot || null, pax: data.pax, status: "Pending" };
@@ -2683,6 +2752,10 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
           <FaqSection lang={lang} faq={content[lang].faq} />
           <StickyBookBar lang={lang} onBook={goPackages} />
         </>
+      ) : page === "blog" ? (
+        <BlogListPage posts={blogPosts} onOpenPost={(id) => { setSelectedPostId(id); setPage("blog-post"); }} />
+      ) : page === "blog-post" ? (
+        <BlogPostPage post={(blogPosts || []).find((p) => p.id === selectedPostId)} onBack={() => setPage("blog")} />
       ) : (
         <PackagesPage lang={lang} currency={currency} catalog={catalog} perGram={perGram} extras={extras} settings={settings} onBookingConfirm={onBookingConfirm} content={content} />
       )}
@@ -2704,6 +2777,7 @@ function AdminSidebar({ tab, setTab }) {
     { id: "homepage", label: "Homepage", icon: Sparkles },
     { id: "reviews", label: "Reviews & Maps", icon: MessageSquare },
     { id: "reservations", label: "Reservations", icon: Calendar },
+    { id: "blog", label: "Blog", icon: FileText },
     { id: "akunting", label: "Akunting", icon: Coins },
     { id: "seo", label: "SEO & AI Health", icon: BarChart3 },
   ];
@@ -2729,6 +2803,7 @@ function AdminMobileTabs({ tab, setTab }) {
     { id: "homepage", label: "Homepage", icon: Sparkles },
     { id: "reviews", label: "Reviews", icon: MessageSquare },
     { id: "reservations", label: "Bookings", icon: Calendar },
+    { id: "blog", label: "Blog", icon: FileText },
     { id: "akunting", label: "Akunting", icon: Coins },
     { id: "seo", label: "SEO", icon: BarChart3 },
   ];
@@ -3475,6 +3550,102 @@ function ReservationsManager({ reservations, setReservations }) {
         ))}
         {reservations.length === 0 && (<div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada reservasi.</div>)}
       </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  ADMIN — BLOG / ARTIKEL                                             */
+/* ------------------------------------------------------------------ */
+
+function BlogPostModal({ open, onClose, onSave, initial }) {
+  const blank = { title: "", excerpt: "", coverPhoto: null, body: "" };
+  const [form, setForm] = useState(initial || blank);
+
+  useEffect(() => { setForm(initial || blank); }, [initial, open]);
+
+  if (!open) return null;
+
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+  const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  const handleSave = () => {
+    if (!form.title.trim() || !form.body.trim()) return;
+    onSave({ ...form, id: form.id || ("post-" + Date.now()) });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-center justify-between rounded-t-2xl">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">{form.id ? "Edit Artikel" : "Tambah Artikel"}</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Judul *</label>
+            <input value={form.title} onChange={(e) => update("title", e.target.value)} placeholder="cth. 5 Oleh-oleh Terbaik dari Bali" className={inputCls} />
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Ringkasan Singkat</label>
+            <textarea value={form.excerpt} onChange={(e) => update("excerpt", e.target.value)} rows={2} className={inputCls + " resize-none"} placeholder="Muncul di daftar artikel" />
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Foto Sampul</label>
+            <PhotoPickerGrid selected={form.coverPhoto} multiple={false} onToggle={(url) => update("coverPhoto", url)} />
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Isi Artikel *</label>
+            <textarea value={form.body} onChange={(e) => update("body", e.target.value)} rows={10} className={inputCls} placeholder="Tulis isi artikel di sini..." />
+          </div>
+          <GlowButton className="w-full" onClick={handleSave}><Check className="w-4 h-4" /> Simpan Artikel</GlowButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BlogManager({ posts, setPosts }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const openAdd = () => { setEditing(null); setModalOpen(true); };
+  const openEdit = (p) => { setEditing(p); setModalOpen(true); };
+  const handleSave = (post) => {
+    setPosts((prev) => {
+      const exists = prev.some((p) => p.id === post.id);
+      return exists ? prev.map((p) => (p.id === post.id ? post : p)) : [post, ...prev];
+    });
+  };
+  const removePost = (id) => setPosts((prev) => prev.filter((p) => p.id !== id));
+
+  return (
+    <div className="max-w-4xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+        <h2 className="text-lg font-semibold text-[#E2E8F0] flex items-center gap-2"><FileText className="w-4 h-4 text-[#C6A15B]" /> Blog / Artikel</h2>
+        <GlowButton onClick={openAdd}><Plus className="w-4 h-4" /> Tambah Artikel</GlowButton>
+      </div>
+      <p className="text-xs text-[#9a99a1] mb-5">Artikel tips/promo yang tampil di halaman "Blog" pada situs customer.</p>
+
+      <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden">
+        {posts.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada artikel. Klik "Tambah Artikel" untuk mulai menulis.</div>}
+        {posts.map((p) => (
+          <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 border-b border-[#2a2930] last:border-b-0">
+            <div className="min-w-0">
+              <p className="text-sm text-[#E2E8F0] font-semibold truncate">{p.title}</p>
+              <p className="text-xs text-[#9a99a1] truncate">{p.excerpt}</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => openEdit(p)} className="text-[#6b6a72] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+              <button onClick={() => removePost(p.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <BlogPostModal open={modalOpen} onClose={() => setModalOpen(false)} onSave={handleSave} initial={editing} />
     </div>
   );
 }
@@ -4960,7 +5131,7 @@ function HomepageManager({ content, setContent, settings, setSettings, heroPhoto
 /*  ADMIN PAGE (assembled)                                             */
 /* ------------------------------------------------------------------ */
 
-function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps }) {
+function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps, blogPosts, setBlogPosts }) {
   const [tab, setTab] = useState("content");
 
   return (
@@ -4993,6 +5164,7 @@ function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, set
           {tab === "homepage" && <HomepageManager content={content} setContent={setContent} settings={settings} setSettings={setSettings} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} lang={lang} />}
           {tab === "reviews" && <ReviewsManager reviews={reviews} setReviews={setReviews} settings={settings} setSettings={setSettings} />}
           {tab === "reservations" && <ReservationsManager reservations={reservations} setReservations={setReservations} />}
+          {tab === "blog" && <BlogManager posts={blogPosts} setPosts={setBlogPosts} />}
           {tab === "akunting" && <AccountingManager transactions={accountingTransactions} setTransactions={setAccountingTransactions} operational={accountingOperational} setOperational={setAccountingOperational} vendors={accountingVendors} setVendors={setAccountingVendors} apps={accountingApps} setApps={setAccountingApps} />}
           {tab === "seo" && <SEOHealth content={content} catalog={catalog} lang={lang} currency={currency} />}
         </main>
@@ -5035,6 +5207,7 @@ export default function FamilySilverClassBaliApp() {
   const [accountingOperational, setAccountingOperational] = useState(initialAccountingOperational);
   const [accountingVendors, setAccountingVendors] = useState(initialAccountingVendors);
   const [accountingApps, setAccountingApps] = useState(initialAccountingApps);
+  const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
   const [stateReady, setStateReady] = useState(false);
 
   useEffect(() => {
@@ -5065,6 +5238,7 @@ export default function FamilySilverClassBaliApp() {
           instructors: setInstructors, asSeenIn: setAsSeenIn, instagramPhotos: setInstagramPhotos,
           accountingTransactions: setAccountingTransactions, accountingOperational: setAccountingOperational,
           accountingVendors: setAccountingVendors, accountingApps: setAccountingApps,
+          blogPosts: setBlogPosts,
         };
         APP_STATE_KEYS.forEach((key) => {
           if (Object.prototype.hasOwnProperty.call(map, key)) {
@@ -5096,18 +5270,19 @@ export default function FamilySilverClassBaliApp() {
   useAppStateSync("accountingOperational", accountingOperational, stateReady);
   useAppStateSync("accountingVendors", accountingVendors, stateReady);
   useAppStateSync("accountingApps", accountingApps, stateReady);
+  useAppStateSync("blogPosts", blogPosts, stateReady);
 
   return (
     <div className="font-sans antialiased">
       <style>{GLOBAL_ANIMATION_CSS}</style>
       {mode === "customer" ? (
-        <CustomerPage page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} />
+        <CustomerPage page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} blogPosts={blogPosts} />
       ) : !authChecked ? (
         <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memeriksa sesi...</div>
       ) : !session ? (
         <LoginGate onCancel={() => setMode("customer")} />
       ) : (
-        <AdminPage setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} />
+        <AdminPage setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} blogPosts={blogPosts} setBlogPosts={setBlogPosts} />
       )}
     </div>
   );
