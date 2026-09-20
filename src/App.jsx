@@ -4,7 +4,7 @@ import {
   MessageSquare, Calendar, TrendingUp, Check, Edit3, Send, Plus, Globe,
   Code2, Clock, CheckCircle2, AlertTriangle, BarChart3,
   FileText, Coins, Hammer, ShieldCheck, ChevronLeft, ChevronRight, Minus,
-  ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown, LogOut,
+  ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown, LogOut, Upload,
 } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
 
@@ -14,7 +14,7 @@ import { createClient } from "@supabase/supabase-js";
 /* ------------------------------------------------------------------ */
 
 const ASSET_BASE = "/";
-const photo = (name) => encodeURI(ASSET_BASE + "PHOTO/" + name);
+const photo = (name) => (/^https?:\/\//i.test(name || "") ? name : encodeURI(ASSET_BASE + "PHOTO/" + name));
 const LOGO_SRC = encodeURI(ASSET_BASE + "logo website.png");
 
 /* ------------------------------------------------------------------ */
@@ -25,6 +25,7 @@ const LOGO_SRC = encodeURI(ASSET_BASE + "logo website.png");
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const SUPABASE_STORAGE_BUCKET = "site-photos";
 
 /* ===== SHARED BODY START (used verbatim by preview.html) ===== */
 
@@ -63,6 +64,16 @@ function useAppStateSync(key, value, ready) {
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, value, ready]);
+}
+
+async function uploadPhotoFile(file) {
+  if (!supabase) return null;
+  const ext = ((file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "")) || "jpg";
+  const path = "uploads/" + Date.now() + "-" + Math.random().toString(36).slice(2, 8) + "." + ext;
+  const { error } = await supabase.storage.from(SUPABASE_STORAGE_BUCKET).upload(path, file, { cacheControl: "3600", upsert: false });
+  if (error) { console.error("Gagal mengunggah foto", error); return null; }
+  const { data } = supabase.storage.from(SUPABASE_STORAGE_BUCKET).getPublicUrl(path);
+  return data && data.publicUrl ? data.publicUrl : null;
 }
 
 async function loadReservationsTable() {
@@ -2757,31 +2768,61 @@ function AdminMobileTabs({ tab, setTab }) {
 /* ------------------------------------------------------------------ */
 
 function PhotoPickerGrid({ selected, multiple, onToggle }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const fileInputRef = useRef(null);
   const isSelected = (name) => (multiple ? selected.includes(name) : selected === name);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!supabase) { setUploadError("Supabase belum dikonfigurasi."); return; }
+    setUploadError("");
+    setUploading(true);
+    const url = await uploadPhotoFile(file);
+    setUploading(false);
+    if (!url) { setUploadError("Gagal mengunggah foto. Coba lagi."); return; }
+    onToggle(url);
+  };
+
   return (
-    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-64 overflow-y-auto p-1 bg-[#16151A] border border-[#2a2930] rounded-lg">
-      {!multiple && (
+    <div>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 max-h-64 overflow-y-auto p-1 bg-[#16151A] border border-[#2a2930] rounded-lg">
         <button
-          onClick={() => onToggle(null)}
-          className={"relative aspect-square rounded-lg overflow-hidden border-2 flex items-center justify-center bg-[#1c1b21] " + (selected === null ? "border-[#C6A15B]" : "border-transparent")}
+          type="button"
+          onClick={() => fileInputRef.current && fileInputRef.current.click()}
+          disabled={uploading}
+          className="relative aspect-square rounded-lg overflow-hidden border-2 border-dashed border-[#3a3940] flex flex-col items-center justify-center gap-1 bg-[#1c1b21] text-[#9a99a1] hover:text-[#C6A15B] hover:border-[#C6A15B] transition-colors disabled:opacity-50"
         >
-          <X className="w-5 h-5 text-[#6b6a72]" />
+          <Upload className="w-4 h-4" />
+          <span className="text-[9px] text-center leading-tight px-1">{uploading ? "Mengunggah..." : "Upload dari HP/PC"}</span>
         </button>
-      )}
-      {ALL_PHOTOS.map((name) => (
-        <button
-          key={name}
-          onClick={() => onToggle(name)}
-          className={"relative aspect-square rounded-lg overflow-hidden border-2 " + (isSelected(name) ? "border-[#C6A15B]" : "border-transparent")}
-        >
-          <img src={photo(name)} alt="" className="w-full h-full object-cover" />
-          {isSelected(name) && (
-            <div className="absolute inset-0 bg-[#C6A15B]/40 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-white" />
-            </div>
-          )}
-        </button>
-      ))}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+        {!multiple && (
+          <button
+            onClick={() => onToggle(null)}
+            className={"relative aspect-square rounded-lg overflow-hidden border-2 flex items-center justify-center bg-[#1c1b21] " + (selected === null ? "border-[#C6A15B]" : "border-transparent")}
+          >
+            <X className="w-5 h-5 text-[#6b6a72]" />
+          </button>
+        )}
+        {ALL_PHOTOS.map((name) => (
+          <button
+            key={name}
+            onClick={() => onToggle(name)}
+            className={"relative aspect-square rounded-lg overflow-hidden border-2 " + (isSelected(name) ? "border-[#C6A15B]" : "border-transparent")}
+          >
+            <img src={photo(name)} alt="" className="w-full h-full object-cover" />
+            {isSelected(name) && (
+              <div className="absolute inset-0 bg-[#C6A15B]/40 flex items-center justify-center">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+      {uploadError && <p className="text-xs text-red-400 mt-1.5">{uploadError}</p>}
     </div>
   );
 }

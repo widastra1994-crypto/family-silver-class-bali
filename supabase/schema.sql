@@ -103,3 +103,36 @@ create policy "admin_delete_reservations" on reservations
   for delete
   to authenticated
   using (true);
+
+-- 3) Storage bucket for admin-uploaded photos (Hero Carousel, Homepage
+--    galleries, package covers, instructor photos, step-by-step photos,
+--    etc). Photos are public to read (they're shown on the public site);
+--    only a logged-in admin can upload/replace/delete them.
+insert into storage.buckets (id, name, public)
+values ('site-photos', 'site-photos', true)
+on conflict (id) do nothing;
+
+drop policy if exists "public_read_site_photos" on storage.objects;
+create policy "public_read_site_photos" on storage.objects
+  for select
+  to anon, authenticated
+  using (bucket_id = 'site-photos');
+
+drop policy if exists "authenticated_upload_site_photos" on storage.objects;
+create policy "authenticated_upload_site_photos" on storage.objects
+  for insert
+  to authenticated
+  with check (bucket_id = 'site-photos');
+
+drop policy if exists "authenticated_update_site_photos" on storage.objects;
+create policy "authenticated_update_site_photos" on storage.objects
+  for update
+  to authenticated
+  using (bucket_id = 'site-photos')
+  with check (bucket_id = 'site-photos');
+
+drop policy if exists "authenticated_delete_site_photos" on storage.objects;
+create policy "authenticated_delete_site_photos" on storage.objects
+  for delete
+  to authenticated
+  using (bucket_id = 'site-photos');
