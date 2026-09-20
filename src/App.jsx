@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Sparkles, Gem, Award, Users, MapPin, Star, X, Menu, LayoutDashboard,
   MessageSquare, Calendar, TrendingUp, Check, Edit3, Send, Plus, Globe,
-  Code2, Clock, CheckCircle2, AlertTriangle, BarChart3,
+  Clock, CheckCircle2, AlertTriangle, BarChart3,
   FileText, Coins, Hammer, ShieldCheck, ChevronLeft, ChevronRight, Minus,
   ExternalLink, Trash2, Heart, Crown, ChevronUp, ChevronDown, LogOut, Upload,
 } from "lucide-react";
@@ -707,10 +707,6 @@ const initialSettings = {
   mapAddress: initialMapAddress,
   promoDeadline: "2026-09-30T23:59:59",
   instagramHandle: "@familysilverclassbali",
-  beforeAfter: {
-    beforePhoto: "FAMILY SILVER CLASS_0002_0001_312321312.jpg",
-    afterPhoto: "FAMILY SILVER CLASS_0009.jpg",
-  },
   pickupAreas: [
     { id: "area-legian", name: "Legian", price: 0 },
     { id: "area-kuta", name: "Kuta", price: 50000 },
@@ -2040,15 +2036,15 @@ function TeamSection({ lang, instructors }) {
         <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("team_title")}</h2>
         <p className="text-[#9a99a1] mb-10 max-w-xl">{t("team_subtitle")}</p>
       </Reveal>
-      <div className="grid sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-3 gap-3 sm:gap-6">
         {instructors.map((m, i) => (
           <Reveal key={m.id} delay={i * 100}>
             <div className="text-center group">
-              <div className="aspect-square rounded-2xl overflow-hidden border border-[#2a2930] group-hover:border-[#C6A15B]/50 transition-colors mb-4">
+              <div className="aspect-square rounded-xl sm:rounded-2xl overflow-hidden border border-[#2a2930] group-hover:border-[#C6A15B]/50 transition-colors mb-2 sm:mb-4">
                 <img src={photo(m.photo)} alt={m.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               </div>
-              <h3 className="text-[#E2E8F0] font-semibold">{m.name}</h3>
-              <p className="text-xs text-[#C6A15B] mt-0.5">{m.role}</p>
+              <h3 className="text-xs sm:text-base text-[#E2E8F0] font-semibold leading-tight">{m.name}</h3>
+              <p className="text-[10px] sm:text-xs text-[#C6A15B] mt-0.5">{m.role}</p>
             </div>
           </Reveal>
         ))}
@@ -2288,78 +2284,6 @@ function ScrollProgressBar() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  CUSTOMER — BEFORE / AFTER SLIDER                                   */
-/* ------------------------------------------------------------------ */
-
-function BeforeAfterSlider({ lang, beforePhoto, afterPhoto }) {
-  const t = (k) => tr(lang, k);
-  const [pos, setPos] = useState(50);
-  const [dragging, setDragging] = useState(false);
-  const ref = useRef(null);
-
-  const updateFromClientX = (clientX) => {
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const pct = ((clientX - rect.left) / rect.width) * 100;
-    setPos(Math.min(100, Math.max(0, pct)));
-  };
-
-  useEffect(() => {
-    if (!dragging) return;
-    const onMove = (e) => updateFromClientX(e.touches ? e.touches[0].clientX : e.clientX);
-    const onUp = () => setDragging(false);
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("touchmove", onMove);
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchend", onUp);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchend", onUp);
-    };
-  }, [dragging]);
-
-  if (!beforePhoto || !afterPhoto) return null;
-
-  return (
-    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-16 sm:py-20">
-      <Reveal>
-        <SectionLabel icon={Sparkles}>{t("beforeafter_eyebrow")}</SectionLabel>
-        <h2 className="text-2xl sm:text-4xl font-bold text-[#E2E8F0] mb-2">{t("beforeafter_title")}</h2>
-        <p className="text-[#9a99a1] mb-10 max-w-xl">{t("beforeafter_subtitle")}</p>
-      </Reveal>
-      <Reveal>
-        <div
-          ref={ref}
-          className="relative select-none rounded-2xl overflow-hidden border border-[#2a2930] aspect-[16/9] max-w-4xl mx-auto cursor-ew-resize"
-          onMouseDown={(e) => { setDragging(true); updateFromClientX(e.clientX); }}
-          onTouchStart={(e) => { setDragging(true); updateFromClientX(e.touches[0].clientX); }}
-        >
-          <img src={photo(afterPhoto)} alt="After" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
-          <div className="absolute top-3 right-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full">{t("label_after")}</div>
-          <img
-            src={photo(beforePhoto)}
-            alt="Before"
-            className="absolute inset-0 w-full h-full object-cover"
-            style={{ clipPath: "inset(0 " + (100 - pos) + "% 0 0)" }}
-            draggable={false}
-          />
-          <div className="absolute top-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-full" style={{ opacity: pos > 15 ? 1 : 0 }}>{t("label_before")}</div>
-          <div className="absolute top-0 bottom-0 w-1 bg-[#C6A15B]" style={{ left: pos + "%", transform: "translateX(-50%)" }}>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-[#C6A15B] flex items-center justify-center shadow-lg">
-              <ChevronLeft className="w-3.5 h-3.5 text-[#16151A] -mr-1" />
-              <ChevronRight className="w-3.5 h-3.5 text-[#16151A] -ml-1" />
-            </div>
-          </div>
-        </div>
-      </Reveal>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
 /*  CUSTOMER — INSTAGRAM-STYLE GALLERY STRIP                           */
 /* ------------------------------------------------------------------ */
 
@@ -2539,11 +2463,10 @@ function MapsAndReviews({ reviews, lang, googleRating, googleReviewCount, mapAdd
 }
 
 /* ------------------------------------------------------------------ */
-/*  CUSTOMER — SEO / GEO DRAWER                                        */
+/*  ADMIN — SEO / GEO TECHNICAL DATA (JSON-LD, OpenGraph, AI-quotable)  */
 /* ------------------------------------------------------------------ */
 
-function SEODrawer({ content, catalog, lang, currency }) {
-  const [open, setOpen] = useState(false);
+function SEOTechnicalPanel({ content, catalog, lang, currency }) {
   const [tab, setTab] = useState("jsonld");
   const c = content[lang];
   const curr = CURRENCIES.find((x) => x.code === currency) || CURRENCIES[0];
@@ -2590,57 +2513,41 @@ function SEODrawer({ content, catalog, lang, currency }) {
     "a certificate of completion. The class is beginner-friendly and suitable for couples, families, and solo travelers.";
 
   return (
-    <>
-      <button onClick={() => setOpen(true)} className="fixed bottom-24 sm:bottom-5 right-5 z-40 flex items-center gap-2 bg-[#1c1b21] border border-[#3a3940] hover:border-[#C6A15B] text-[#9a99a1] hover:text-[#C6A15B] text-xs px-4 py-3 rounded-full shadow-lg transition-colors">
-        <Code2 className="w-4 h-4" /> <span className="hidden sm:inline">Inspect SEO & AI Metadata</span><span className="sm:hidden">SEO</span>
-      </button>
+    <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5">
+      <h3 className="text-sm font-semibold text-[#E2E8F0] mb-4 flex items-center gap-2">
+        <Globe className="w-4 h-4 text-[#C6A15B]" /> Data Teknis SEO & AI Search (GEO)
+      </h3>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="relative w-full sm:w-[480px] h-full bg-[#16151A] border-l border-[#2a2930] p-6 overflow-y-auto">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="text-[#E2E8F0] font-semibold flex items-center gap-2">
-                <Globe className="w-4 h-4 text-[#C6A15B]" /> SEO & AI Search (GEO)
-              </h3>
-              <button onClick={() => setOpen(false)} className="text-[#9a99a1] hover:text-[#E2E8F0]">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <div className="flex gap-1 bg-[#16151A] p-1 rounded-lg mb-4 text-xs">
+        {[["jsonld", "JSON-LD"], ["og", "OpenGraph"], ["ai", "AI-Quotable"]].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)} className={"flex-1 py-2 rounded-md font-semibold transition-colors " + (tab === id ? "bg-[#C6A15B] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}>
+            {label}
+          </button>
+        ))}
+      </div>
 
-            <div className="flex gap-1 bg-[#1c1b21] p-1 rounded-lg mb-4 text-xs">
-              {[["jsonld", "JSON-LD"], ["og", "OpenGraph"], ["ai", "AI-Quotable"]].map(([id, label]) => (
-                <button key={id} onClick={() => setTab(id)} className={"flex-1 py-2 rounded-md font-semibold transition-colors " + (tab === id ? "bg-[#C6A15B] text-[#16151A]" : "text-[#9a99a1] hover:text-[#E2E8F0]")}>
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {tab === "jsonld" && (
-              <pre className="text-[11px] leading-relaxed text-[#9a99a1] bg-[#1c1b21] border border-[#2a2930] rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-words">
+      {tab === "jsonld" && (
+        <pre className="text-[11px] leading-relaxed text-[#9a99a1] bg-[#16151A] border border-[#2a2930] rounded-lg p-4 overflow-x-auto whitespace-pre-wrap break-words">
 {JSON.stringify(jsonLd, null, 2)}
-              </pre>
-            )}
-            {tab === "og" && (
-              <div className="space-y-2">
-                {ogTags.map(([k, v]) => (
-                  <div key={k} className="bg-[#1c1b21] border border-[#2a2930] rounded-lg p-3">
-                    <p className="text-[10px] uppercase tracking-wider text-[#C6A15B]">{k}</p>
-                    <p className="text-xs text-[#E2E8F0] mt-0.5 break-words">{v}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-            {tab === "ai" && (
-              <div className="bg-[#1c1b21] border border-[#2a2930] rounded-lg p-4">
-                <p className="text-[10px] uppercase tracking-wider text-[#C6A15B] mb-2">Structured for Perplexity / Google AI Overviews</p>
-                <p className="text-xs text-[#c7c6cc] leading-relaxed">{aiText}</p>
-              </div>
-            )}
-          </div>
+        </pre>
+      )}
+      {tab === "og" && (
+        <div className="space-y-2">
+          {ogTags.map(([k, v]) => (
+            <div key={k} className="bg-[#16151A] border border-[#2a2930] rounded-lg p-3">
+              <p className="text-[10px] uppercase tracking-wider text-[#C6A15B]">{k}</p>
+              <p className="text-xs text-[#E2E8F0] mt-0.5 break-words">{v}</p>
+            </div>
+          ))}
         </div>
       )}
-    </>
+      {tab === "ai" && (
+        <div className="bg-[#16151A] border border-[#2a2930] rounded-lg p-4">
+          <p className="text-[10px] uppercase tracking-wider text-[#C6A15B] mb-2">Structured for Perplexity / Google AI Overviews</p>
+          <p className="text-xs text-[#c7c6cc] leading-relaxed">{aiText}</p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -2653,9 +2560,8 @@ function Footer({ lang }) {
   return (
     <footer className="mt-10">
       <div className="divider-luxury" />
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#6b6a72]">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 flex items-center justify-center text-xs text-[#6b6a72]">
         <span>© 2026 {t("footer_rights")}</span>
-        <span>{t("footer_prototype")}</span>
       </div>
     </footer>
   );
@@ -2694,7 +2600,6 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
           <StatsSection lang={lang} stats={content[lang].stats} />
           <Gallery lang={lang} galleryPhotos={galleryPhotos} />
           <GuestGallery lang={lang} photos={guestGalleryPhotos} />
-          <BeforeAfterSlider lang={lang} beforePhoto={settings.beforeAfter && settings.beforeAfter.beforePhoto} afterPhoto={settings.beforeAfter && settings.beforeAfter.afterPhoto} />
           <AboutSection lang={lang} about={content[lang].about} />
           <TeamSection lang={lang} instructors={instructors} />
           <MapsAndReviews reviews={reviews} lang={lang} googleRating={settings.googleRating} googleReviewCount={settings.googleReviewCount} mapAddress={settings.mapAddress} />
@@ -2707,7 +2612,6 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
       )}
 
       <Footer lang={lang} />
-      <SEODrawer content={content} catalog={catalog} lang={lang} currency={currency} />
       <FloatingWhatsApp whatsappNumber={settings.whatsappNumber} />
     </div>
   );
@@ -4538,7 +4442,7 @@ function AccountingManager({ transactions, setTransactions, operational, setOper
 /*  ADMIN — SEO & AI HEALTH                                            */
 /* ------------------------------------------------------------------ */
 
-function SEOHealth() {
+function SEOHealth({ content, catalog, lang, currency }) {
   const localScore = 92;
   const aiScore = 88;
 
@@ -4582,14 +4486,16 @@ function SEOHealth() {
         </div>
       </div>
 
-      <div className="mt-4 bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5 flex items-start gap-3">
+      <div className="mt-4 mb-6 bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-5 flex items-start gap-3">
         <ShieldCheck className="w-5 h-5 text-[#C6A15B] shrink-0 mt-0.5" />
         <p className="text-xs text-[#9a99a1] leading-relaxed">
           NAP konsisten di seluruh halaman dan Google Business Profile. Struktur JSON-LD dan blok teks AI-quotable
-          sudah aktif — cek melalui panel "Inspect SEO & AI Metadata" di Customer Landing Page. Situs kini mendukung
-          10 bahasa dan konversi 10 mata uang untuk pengunjung mancanegara.
+          sudah aktif (lihat data teknisnya di bawah, khusus untuk Admin — tidak tampil ke customer). Situs kini
+          mendukung 10 bahasa dan konversi 10 mata uang untuk pengunjung mancanegara.
         </p>
       </div>
+
+      <SEOTechnicalPanel content={content} catalog={catalog} lang={lang} currency={currency} />
     </div>
   );
 }
@@ -4635,8 +4541,6 @@ function HomepageManager({ content, setContent, settings, setSettings, heroPhoto
   const saveMapAddress = () => { setSettings({ ...settings, mapAddress: mapAddressDraft }); flash("map"); };
   const savePromoDeadline = () => { setSettings({ ...settings, promoDeadline: promoDeadlineDraft }); flash("deadline"); };
   const saveInstagramHandle = () => { setSettings({ ...settings, instagramHandle: instagramHandleDraft }); flash("instagram"); };
-  const setBeforePhoto = (name) => setSettings({ ...settings, beforeAfter: { ...(settings.beforeAfter || {}), beforePhoto: name } });
-  const setAfterPhoto = (name) => setSettings({ ...settings, beforeAfter: { ...(settings.beforeAfter || {}), afterPhoto: name } });
 
   const updateWhyUs = (i, key, value) => setWhyUsDraft(whyUsDraft.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
   const addWhyUs = () => setWhyUsDraft([...whyUsDraft, { icon: "gem", title: "", description: "" }]);
@@ -4857,22 +4761,6 @@ function HomepageManager({ content, setContent, settings, setSettings, heroPhoto
         </div>
       </div>
 
-      {/* Before / After Slider */}
-      <div>
-        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Sparkles className="w-4 h-4 text-[#C6A15B]" /> Before / After Slider</h3>
-        <p className="text-xs text-[#9a99a1] mb-3">Foto "sebelum" (perak mentah/proses) dan "sesudah" (perhiasan jadi) untuk slider interaktif di homepage.</p>
-        <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5 space-y-4">
-          <div>
-            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Foto "Sebelum"</label>
-            <PhotoPickerGrid selected={settings.beforeAfter && settings.beforeAfter.beforePhoto} multiple={false} onToggle={setBeforePhoto} />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-[#9a99a1] uppercase tracking-wider mb-1.5 block">Foto "Sesudah"</label>
-            <PhotoPickerGrid selected={settings.beforeAfter && settings.beforeAfter.afterPhoto} multiple={false} onToggle={setAfterPhoto} />
-          </div>
-        </div>
-      </div>
-
       {/* Instagram Strip */}
       <div>
         <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2"><Star className="w-4 h-4 text-[#C6A15B]" /> Instagram Strip</h3>
@@ -4995,7 +4883,7 @@ function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, set
           {tab === "reviews" && <ReviewsManager reviews={reviews} setReviews={setReviews} settings={settings} setSettings={setSettings} />}
           {tab === "reservations" && <ReservationsManager reservations={reservations} setReservations={setReservations} />}
           {tab === "akunting" && <AccountingManager transactions={accountingTransactions} setTransactions={setAccountingTransactions} operational={accountingOperational} setOperational={setAccountingOperational} vendors={accountingVendors} setVendors={setAccountingVendors} apps={accountingApps} setApps={setAccountingApps} />}
-          {tab === "seo" && <SEOHealth />}
+          {tab === "seo" && <SEOHealth content={content} catalog={catalog} lang={lang} currency={currency} />}
         </main>
       </div>
     </div>
