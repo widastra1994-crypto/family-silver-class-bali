@@ -65,17 +65,27 @@ async function loadAppState() {
   return map;
 }
 
-function useAppStateSync(key, value, ready) {
+function useAppStateSync(key, value, ready, onStatus) {
   const skipRef = useRef(true);
   useEffect(() => {
     if (!ready || !supabase) return;
     if (skipRef.current) { skipRef.current = false; return; }
-    const handle = setTimeout(() => {
-      supabase.from("app_state").upsert({ key, value, updated_at: new Date().toISOString() }).then(({ error }) => {
-        if (error) console.error("Gagal menyimpan " + key, error);
-      });
-    }, 600);
-    return () => clearTimeout(handle);
+    // Saved immediately (no debounce): every write here comes from a discrete
+    // admin action (a Save/Add/Delete click), never from continuous typing, so
+    // there's nothing to batch — and a delay only widens the window where a
+    // closed tab / quick navigation drops the write before it ever fires.
+    let cancelled = false;
+    if (onStatus) onStatus({ state: "saving", key });
+    supabase.from("app_state").upsert({ key, value, updated_at: new Date().toISOString() }).then(({ error }) => {
+      if (cancelled) return;
+      if (error) {
+        console.error("Gagal menyimpan " + key, error);
+        if (onStatus) onStatus({ state: "error", key, message: error.message });
+      } else if (onStatus) {
+        onStatus({ state: "saved", key });
+      }
+    });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, value, ready]);
 }
@@ -3136,7 +3146,25 @@ function ContentEditor({ content, setContent, settings, setSettings, extras, set
     setDraft(content[newLang]);
     setDirectionsDraft(content[newLang].directions);
   };
-  const saveContent = () => { setContent({ ...content, [editLang]: draft }); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const saveContent = () => {
+    // Merge only the fields this editor actually owns (headline/subheadline/promo/
+    // description) against the LIVE content[editLang], never replace the whole
+    // object with `draft` — draft is a one-time snapshot and would otherwise
+    // silently revert directions/packages/about/whyUs/steps/faq/stats to
+    // whatever they were when this tab was opened.
+    setContent({
+      ...content,
+      [editLang]: {
+        ...content[editLang],
+        headline: draft.headline,
+        subheadline: draft.subheadline,
+        promo: draft.promo,
+        description: draft.description,
+      },
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
   const saveSettings = () => {
     setSettings({ ...settings, whatsappNumber: settingsDraft.whatsappNumber.replace(/[^0-9]/g, ""), maxPaxPerSlot: Number(settingsDraft.maxPaxPerSlot) || 6 });
     setSaved(true);
@@ -5145,7 +5173,30 @@ function HomepageManager({ content, setContent, settings, setSettings, heroPhoto
 /*  ADMIN PAGE (assembled)                                             */
 /* ------------------------------------------------------------------ */
 
-function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps, blogPosts, setBlogPosts }) {
+function SaveStatusBadge({ status }) {
+  if (!status || status.state === "idle") return null;
+  if (status.state === "saving") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-[#9a99a1]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#C6A15B] animate-pulse" /> Menyimpan...
+      </span>
+    );
+  }
+  if (status.state === "error") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-red-400" title={status.message || ""}>
+        <AlertTriangle className="w-3.5 h-3.5" /> Gagal menyimpan — periksa koneksi Anda
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1.5 text-xs text-green-400">
+      <CheckCircle2 className="w-3.5 h-3.5" /> Tersimpan ke server
+    </span>
+  );
+}
+
+function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, setContent, catalog, setCatalog, perGram, setPerGram, extras, setExtras, settings, setSettings, galleryPhotos, setGalleryPhotos, reviews, setReviews, reservations, setReservations, heroPhotos, setHeroPhotos, guestGalleryPhotos, setGuestGalleryPhotos, instructors, setInstructors, asSeenIn, setAsSeenIn, instagramPhotos, setInstagramPhotos, accountingTransactions, setAccountingTransactions, accountingOperational, setAccountingOperational, accountingVendors, setAccountingVendors, accountingApps, setAccountingApps, blogPosts, setBlogPosts, saveStatus }) {
   const [tab, setTab] = useState("content");
 
   return (
@@ -5156,7 +5207,8 @@ function AdminPage({ setMode, lang, setLang, currency, setCurrency, content, set
           <span className="hidden sm:inline text-[#E2E8F0] font-semibold text-sm whitespace-nowrap">Family Silver Class Bali</span>
           <span className="text-[10px] uppercase tracking-wider bg-[#C6A15B]/10 text-[#C6A15B] border border-[#C6A15B]/30 rounded-full px-2 py-0.5 ml-2 whitespace-nowrap">Admin</span>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          <SaveStatusBadge status={saveStatus} />
           <LangCurrencySwitchers lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} />
           <button
             onClick={() => { if (supabase) supabase.auth.signOut(); setMode("customer"); }}
@@ -5223,6 +5275,13 @@ function FamilySilverClassBaliApp() {
   const [accountingApps, setAccountingApps] = useState(initialAccountingApps);
   const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
   const [stateReady, setStateReady] = useState(false);
+  const [saveStatus, setSaveStatus] = useState({ state: "idle" });
+
+  useEffect(() => {
+    if (saveStatus.state !== "saved") return;
+    const t = setTimeout(() => setSaveStatus((s) => (s.state === "saved" ? { state: "idle" } : s)), 2000);
+    return () => clearTimeout(t);
+  }, [saveStatus]);
 
   useEffect(() => {
     if (!supabase) { setAuthChecked(true); return; }
@@ -5268,23 +5327,23 @@ function FamilySilverClassBaliApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useAppStateSync("content", content, stateReady);
-  useAppStateSync("catalog", catalog, stateReady);
-  useAppStateSync("perGram", perGram, stateReady);
-  useAppStateSync("extras", extras, stateReady);
-  useAppStateSync("settings", settings, stateReady);
-  useAppStateSync("galleryPhotos", galleryPhotos, stateReady);
-  useAppStateSync("reviews", reviews, stateReady);
-  useAppStateSync("heroPhotos", heroPhotos, stateReady);
-  useAppStateSync("guestGalleryPhotos", guestGalleryPhotos, stateReady);
-  useAppStateSync("instructors", instructors, stateReady);
-  useAppStateSync("asSeenIn", asSeenIn, stateReady);
-  useAppStateSync("instagramPhotos", instagramPhotos, stateReady);
-  useAppStateSync("accountingTransactions", accountingTransactions, stateReady);
-  useAppStateSync("accountingOperational", accountingOperational, stateReady);
-  useAppStateSync("accountingVendors", accountingVendors, stateReady);
-  useAppStateSync("accountingApps", accountingApps, stateReady);
-  useAppStateSync("blogPosts", blogPosts, stateReady);
+  useAppStateSync("content", content, stateReady, setSaveStatus);
+  useAppStateSync("catalog", catalog, stateReady, setSaveStatus);
+  useAppStateSync("perGram", perGram, stateReady, setSaveStatus);
+  useAppStateSync("extras", extras, stateReady, setSaveStatus);
+  useAppStateSync("settings", settings, stateReady, setSaveStatus);
+  useAppStateSync("galleryPhotos", galleryPhotos, stateReady, setSaveStatus);
+  useAppStateSync("reviews", reviews, stateReady, setSaveStatus);
+  useAppStateSync("heroPhotos", heroPhotos, stateReady, setSaveStatus);
+  useAppStateSync("guestGalleryPhotos", guestGalleryPhotos, stateReady, setSaveStatus);
+  useAppStateSync("instructors", instructors, stateReady, setSaveStatus);
+  useAppStateSync("asSeenIn", asSeenIn, stateReady, setSaveStatus);
+  useAppStateSync("instagramPhotos", instagramPhotos, stateReady, setSaveStatus);
+  useAppStateSync("accountingTransactions", accountingTransactions, stateReady, setSaveStatus);
+  useAppStateSync("accountingOperational", accountingOperational, stateReady, setSaveStatus);
+  useAppStateSync("accountingVendors", accountingVendors, stateReady, setSaveStatus);
+  useAppStateSync("accountingApps", accountingApps, stateReady, setSaveStatus);
+  useAppStateSync("blogPosts", blogPosts, stateReady, setSaveStatus);
 
   return (
     <div className="font-sans antialiased">
@@ -5295,8 +5354,10 @@ function FamilySilverClassBaliApp() {
         <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memeriksa sesi...</div>
       ) : !session ? (
         <LoginGate onCancel={() => setMode("customer")} />
+      ) : !stateReady ? (
+        <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memuat data dari server...</div>
       ) : (
-        <AdminPage setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} blogPosts={blogPosts} setBlogPosts={setBlogPosts} />
+        <AdminPage setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} blogPosts={blogPosts} setBlogPosts={setBlogPosts} saveStatus={saveStatus} />
       )}
     </div>
   );
