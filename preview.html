@@ -4154,7 +4154,13 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
     setVendors([...vendors, { id: "vendor-" + Date.now(), ...vendorForm }]);
     setVendorForm({ name: "", phone: "", note: "" });
   };
-  const removeVendor = (id) => { if (window.confirm("Hapus instruktur ini?")) setVendors(vendors.filter((v) => v.id !== id)); };
+  const removeVendor = (id) => {
+    const linkedCount = transactions.filter((t) => (t.instructorPayments || []).some((p) => p.vendorId === id)).length;
+    const msg = linkedCount > 0
+      ? "Instruktur ini masih tercatat di " + linkedCount + " rekapan transaksi. Menghapusnya TIDAK menghapus transaksi tersebut, tapi namanya akan tampil sebagai \"(Instruktur dihapus)\" di Laporan Per Instruktur. Tetap hapus?"
+      : "Hapus instruktur ini?";
+    if (window.confirm(msg)) setVendors(vendors.filter((v) => v.id !== id));
+  };
   const startEditVendor = (v) => { setEditingVendorId(v.id); setVendorEditDraft({ name: v.name, phone: v.phone || "", note: v.note || "" }); };
   const cancelEditVendor = () => setEditingVendorId(null);
   const saveEditVendor = () => {
@@ -4168,7 +4174,13 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
     setApps([...apps, { id: "app-" + Date.now(), name: appForm.trim() }]);
     setAppForm("");
   };
-  const removeApp = (id) => { if (window.confirm("Hapus aplikasi ini?")) setApps(apps.filter((a) => a.id !== id)); };
+  const removeApp = (id) => {
+    const linkedCount = transactions.filter((t) => t.appId === id).length;
+    const msg = linkedCount > 0
+      ? "Aplikasi/Agent ini masih tercatat di " + linkedCount + " rekapan transaksi. Menghapusnya TIDAK menghapus transaksi tersebut, tapi namanya akan tampil sebagai \"(Aplikasi dihapus)\" di Laporan Per Aplikasi/Agent. Tetap hapus?"
+      : "Hapus aplikasi ini?";
+    if (window.confirm(msg)) setApps(apps.filter((a) => a.id !== id));
+  };
   const startEditApp = (a) => { setEditingAppId(a.id); setAppEditDraft(a.name); };
   const cancelEditApp = () => setEditingAppId(null);
   const saveEditApp = () => {
@@ -4405,25 +4417,38 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
     return { key: p.key, count: txs.length, cost: costP, instr: instrP, refund: refundP, revenue: revenueP, ops: opsP, net: revenueP - opsP };
   });
 
+  // Iterate every appId/vendorId actually referenced in transactions (not just
+  // the current Master Data list) so a deleted instructor/agent's historical
+  // commission never silently disappears from these reports while still
+  // counting toward the Rekapan Utama / Laba Rugi totals above.
   const appBreakdown = [];
   buildPeriods(viewMode).forEach((p) => {
-    apps.forEach((a) => {
-      const txs = transactions.filter((t) => t.appId === a.id && p.test(new Date(t.date)));
-      if (txs.length > 0) appBreakdown.push({ period: p.key, name: a.name, appId: a.id, periodTest: p.test, count: txs.length, revenue: txs.reduce((s, t) => s + txRevenue(t), 0) });
+    const appNameById = new Map(apps.map((a) => [a.id, a.name]));
+    const idsInPeriod = new Set();
+    transactions.forEach((t) => { if (t.appId && p.test(new Date(t.date))) idsInPeriod.add(t.appId); });
+    idsInPeriod.forEach((appId) => {
+      const txs = transactions.filter((t) => t.appId === appId && p.test(new Date(t.date)));
+      if (txs.length > 0) appBreakdown.push({ period: p.key, name: appNameById.get(appId) || "(Aplikasi dihapus)", appId, periodTest: p.test, count: txs.length, revenue: txs.reduce((s, t) => s + txRevenue(t), 0) });
     });
   });
 
   const vendorBreakdown = [];
   buildPeriods(viewMode).forEach((p) => {
-    vendors.forEach((v) => {
+    const vendorNameById = new Map(vendors.map((v) => [v.id, v.name]));
+    const idsInPeriod = new Set();
+    transactions.forEach((t) => {
+      if (!p.test(new Date(t.date))) return;
+      (t.instructorPayments || []).forEach((pay) => { if (pay.vendorId) idsInPeriod.add(pay.vendorId); });
+    });
+    idsInPeriod.forEach((vendorId) => {
       let total = 0, unpaid = 0, count = 0;
       transactions.forEach((t) => {
         if (!p.test(new Date(t.date))) return;
         (t.instructorPayments || []).forEach((pay) => {
-          if (pay.vendorId === v.id) { total += Number(pay.amount) || 0; count += 1; if (!pay.paid) unpaid += Number(pay.amount) || 0; }
+          if (pay.vendorId === vendorId) { total += Number(pay.amount) || 0; count += 1; if (!pay.paid) unpaid += Number(pay.amount) || 0; }
         });
       });
-      if (count > 0) vendorBreakdown.push({ period: p.key, name: v.name, vendorId: v.id, periodTest: p.test, count, total, unpaid });
+      if (count > 0) vendorBreakdown.push({ period: p.key, name: vendorNameById.get(vendorId) || "(Instruktur dihapus)", vendorId, periodTest: p.test, count, total, unpaid });
     });
   });
 
