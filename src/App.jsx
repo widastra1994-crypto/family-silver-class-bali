@@ -3589,8 +3589,9 @@ function ReservationsManager({ reservations, setReservations }) {
 function BlogPostModal({ open, onClose, onSave, initial }) {
   const blank = { title: "", excerpt: "", coverPhoto: null, body: "" };
   const [form, setForm] = useState(initial || blank);
+  const savingRef = useRef(false);
 
-  useEffect(() => { setForm(initial || blank); }, [initial, open]);
+  useEffect(() => { setForm(initial || blank); savingRef.current = false; }, [initial, open]);
 
   if (!open) return null;
 
@@ -3598,7 +3599,12 @@ function BlogPostModal({ open, onClose, onSave, initial }) {
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = () => {
+    // Guards against a rapid double-click creating two identical entries: a
+    // fresh id is only generated here (for a brand-new post), so firing this
+    // twice before the modal unmounts would otherwise insert a duplicate.
+    if (savingRef.current) return;
     if (!form.title.trim() || !form.body.trim()) return;
+    savingRef.current = true;
     onSave({ ...form, id: form.id || ("post-" + Date.now()) });
     onClose();
   };
@@ -3737,8 +3743,9 @@ function PeriodFilterBar({ period, setPeriod, from, setFrom, to, setTo }) {
 function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, initial }) {
   const blank = { date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "", instructorPayments: [] };
   const [form, setForm] = useState(initial || blank);
+  const savingRef = useRef(false);
 
-  useEffect(() => { setForm(initial || blank); }, [initial, open]);
+  useEffect(() => { setForm(initial || blank); savingRef.current = false; }, [initial, open]);
 
   if (!open) return null;
 
@@ -3752,7 +3759,11 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
   const revenue = (Number(form.costPrice) || 0) - vendorTotal - (Number(form.refund) || 0);
 
   const handleSave = () => {
+    // Guards against a rapid double-click creating a duplicate Rekapan entry
+    // (a fresh TX- id is only assigned here for a brand-new record).
+    if (savingRef.current) return;
     if (!form.guestName.trim() || !form.activityName.trim() || !form.costPrice) return;
+    savingRef.current = true;
     onSave({ ...form, id: form.id || ("TX-" + Date.now()), costPrice: Number(form.costPrice) || 0, refund: Number(form.refund) || 0, pax: Number(form.pax) || 1 });
     onClose();
   };
@@ -4017,13 +4028,18 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
 function AccountingOperationalModal({ open, onClose, onSave, initial }) {
   const blank = { date: new Date().toISOString().slice(0, 10), quantity: 1, need: "", totalAmount: "", note: "" };
   const [form, setForm] = useState(initial || blank);
-  useEffect(() => { setForm(initial || blank); }, [initial, open]);
+  const savingRef = useRef(false);
+  useEffect(() => { setForm(initial || blank); savingRef.current = false; }, [initial, open]);
   if (!open) return null;
 
   const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const handleSave = () => {
+    // Guards against a rapid double-click creating a duplicate Operasional
+    // entry (a fresh OP- id is only assigned here for a brand-new record).
+    if (savingRef.current) return;
     if (!form.need.trim() || !form.totalAmount) return;
+    savingRef.current = true;
     onSave({ ...form, id: form.id || ("OP-" + Date.now()), quantity: Number(form.quantity) || 1, totalAmount: Number(form.totalAmount) || 0 });
     onClose();
   };
@@ -4376,7 +4392,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
   const ops = scopedOps.reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
   const netProfit = revenue - ops;
   const margin = cost > 0 ? (netProfit / cost) * 100 : 0;
-  const unpaidVendor = transactions.reduce((s, t) => s + (t.instructorPayments || []).filter((p) => !p.paid).reduce((s2, p) => s2 + (Number(p.amount) || 0), 0), 0);
+  const unpaidVendor = scopedTx.reduce((s, t) => s + (t.instructorPayments || []).filter((p) => !p.paid).reduce((s2, p) => s2 + (Number(p.amount) || 0), 0), 0);
   const periodLabel = (ACCOUNTING_PERIODS.find((p) => p.id === period) || { label: "Kustom" }).label;
   const scopeLabel = tab === "pengembalian" ? periodLabel : (viewMode === "bulanan" ? "Tahun " + reportYear : "Semua Tahun");
 
