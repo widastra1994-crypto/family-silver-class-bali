@@ -3694,8 +3694,14 @@ function idr(n) {
 function txVendorTotal(tx) {
   return (tx.instructorPayments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
 }
+function txAddOnsTotal(tx) {
+  return (tx.addOns || []).reduce((s, a) => s + (Number(a.price) || 0), 0);
+}
+function txGrossCost(tx) {
+  return (Number(tx.costPrice) || 0) + txAddOnsTotal(tx);
+}
 function txRevenue(tx) {
-  return (Number(tx.costPrice) || 0) - txVendorTotal(tx) - (Number(tx.refund) || 0);
+  return txGrossCost(tx) - txVendorTotal(tx) - (Number(tx.refund) || 0);
 }
 function inPeriod(dateStr, period, from, to) {
   const d = new Date(dateStr);
@@ -3741,11 +3747,11 @@ function PeriodFilterBar({ period, setPeriod, from, setFrom, to, setTo }) {
 }
 
 function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, initial }) {
-  const blank = { date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "", instructorPayments: [] };
+  const blank = { date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "", instructorPayments: [], addOns: [] };
   const [form, setForm] = useState(initial || blank);
   const savingRef = useRef(false);
 
-  useEffect(() => { setForm(initial || blank); savingRef.current = false; }, [initial, open]);
+  useEffect(() => { setForm(initial ? { addOns: [], ...initial } : blank); savingRef.current = false; }, [initial, open]);
 
   if (!open) return null;
 
@@ -3754,9 +3760,14 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
   const addPayment = () => setForm((f) => ({ ...f, instructorPayments: [...f.instructorPayments, { id: "p-" + Date.now(), vendorId: vendors[0] ? vendors[0].id : "", amount: "", paid: false, note: "" }] }));
   const updatePayment = (id, k, v) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.map((p) => (p.id === id ? { ...p, [k]: v } : p)) }));
   const removePayment = (id) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.filter((p) => p.id !== id) }));
+  const addAddOn = () => setForm((f) => ({ ...f, addOns: [...(f.addOns || []), { id: "addon-" + Date.now(), name: "", price: "" }] }));
+  const updateAddOn = (id, k, v) => setForm((f) => ({ ...f, addOns: (f.addOns || []).map((a) => (a.id === id ? { ...a, [k]: v } : a)) }));
+  const removeAddOn = (id) => setForm((f) => ({ ...f, addOns: (f.addOns || []).filter((a) => a.id !== id) }));
 
   const vendorTotal = form.instructorPayments.reduce((s, p) => s + (Number(p.amount) || 0), 0);
-  const revenue = (Number(form.costPrice) || 0) - vendorTotal - (Number(form.refund) || 0);
+  const addOnsTotal = (form.addOns || []).reduce((s, a) => s + (Number(a.price) || 0), 0);
+  const grossCost = (Number(form.costPrice) || 0) + addOnsTotal;
+  const revenue = grossCost - vendorTotal - (Number(form.refund) || 0);
 
   const handleSave = () => {
     // Guards against a rapid double-click creating a duplicate Rekapan entry
@@ -3764,7 +3775,14 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
     if (savingRef.current) return;
     if (!form.guestName.trim() || !form.activityName.trim() || !form.costPrice) return;
     savingRef.current = true;
-    onSave({ ...form, id: form.id || ("TX-" + Date.now()), costPrice: Number(form.costPrice) || 0, refund: Number(form.refund) || 0, pax: Number(form.pax) || 1 });
+    onSave({
+      ...form,
+      id: form.id || ("TX-" + Date.now()),
+      costPrice: Number(form.costPrice) || 0,
+      refund: Number(form.refund) || 0,
+      pax: Number(form.pax) || 1,
+      addOns: (form.addOns || []).filter((a) => a.name.trim()).map((a) => ({ ...a, price: Number(a.price) || 0 })),
+    });
     onClose();
   };
 
@@ -3809,7 +3827,7 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-[#9a99a1] mb-1 block">Harga Pokok (dari tamu) *</label>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Harga Paket Utama (dari tamu) *</label>
               <input type="number" value={form.costPrice} onChange={(e) => update("costPrice", e.target.value)} placeholder="0" className={inputCls} />
             </div>
             <div>
@@ -3820,6 +3838,27 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
           <div>
             <label className="text-xs text-[#9a99a1] mb-1 block">Catatan</label>
             <textarea value={form.note} onChange={(e) => update("note", e.target.value)} rows={2} className={inputCls + " resize-none"} />
+          </div>
+
+          <div className="border-t border-[#2a2930] pt-5">
+            <div className="flex items-center justify-between mb-3 gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-[#E2E8F0]">Add-On / Tambahan</h4>
+                <p className="text-xs text-[#9a99a1]">Tambahan di luar paket utama (cth. gemstone, ukiran ekstra). Otomatis dijumlahkan ke Harga Pokok.</p>
+              </div>
+              <span className="text-sm font-semibold text-[#C6A15B] whitespace-nowrap">{idr(addOnsTotal)}</span>
+            </div>
+            <div className="space-y-2 mb-3">
+              {(form.addOns || []).map((a) => (
+                <div key={a.id} className="grid sm:grid-cols-[1fr_140px_auto] gap-2 items-center">
+                  <input value={a.name} onChange={(e) => updateAddOn(a.id, "name", e.target.value)} placeholder="cth. Add Gemstone" className={inputCls} />
+                  <input type="number" value={a.price} onChange={(e) => updateAddOn(a.id, "price", e.target.value)} placeholder="Rp 0" className={inputCls} />
+                  <button onClick={() => removeAddOn(a.id)} className="text-[#6b6a72] hover:text-red-400 justify-self-end shrink-0"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              ))}
+              {(!form.addOns || form.addOns.length === 0) && <div className="text-xs text-[#6b6a72] px-1">Belum ada add-on untuk transaksi ini.</div>}
+            </div>
+            <GlowButton variant="ghost" onClick={addAddOn}><Plus className="w-4 h-4" /> Tambah Add-On</GlowButton>
           </div>
 
           <div className="border-t border-[#2a2930] pt-5">
@@ -3854,7 +3893,9 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
           </div>
 
           <div className="bg-[#16151A] border border-[#C6A15B]/20 rounded-xl p-4 space-y-1.5 text-sm">
-            <div className="flex justify-between text-[#9a99a1]"><span>Harga Pokok</span><span>{idr(form.costPrice)}</span></div>
+            <div className="flex justify-between text-[#9a99a1]"><span>Harga Paket Utama</span><span>{idr(form.costPrice)}</span></div>
+            <div className="flex justify-between text-[#9a99a1]"><span>+ Add-On</span><span>{idr(addOnsTotal)}</span></div>
+            <div className="flex justify-between text-[#E2E8F0] font-semibold border-t border-[#2a2930] pt-1.5"><span>Harga Pokok</span><span>{idr(grossCost)}</span></div>
             <div className="flex justify-between text-[#9a99a1]"><span>− Komisi Instruktur</span><span>{idr(vendorTotal)}</span></div>
             <div className="flex justify-between text-[#9a99a1]"><span>− Pengembalian Dana</span><span>{idr(form.refund)}</span></div>
             <div className="flex justify-between text-base font-bold text-[#E2E8F0] pt-2 border-t border-[#2a2930]"><span>Pendapatan</span><span className="text-green-400">{idr(revenue)}</span></div>
@@ -3874,7 +3915,7 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
 
   const thisMonthTx = transactions.filter((t) => inPeriod(t.date, "bulan_ini"));
   const totalPax = thisMonthTx.reduce((s, t) => s + (Number(t.pax) || 0), 0);
-  const totalCost = thisMonthTx.reduce((s, t) => s + (Number(t.costPrice) || 0), 0);
+  const totalCost = thisMonthTx.reduce((s, t) => s + txGrossCost(t), 0);
   const totalVendor = thisMonthTx.reduce((s, t) => s + txVendorTotal(t), 0);
   const totalRevenue = thisMonthTx.reduce((s, t) => s + txRevenue(t), 0);
   const thisMonthOps = operational.filter((o) => inPeriod(o.date, "bulan_ini")).reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
@@ -3963,8 +4004,11 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
                 <td className="px-4 py-3">
                   <div className="text-[#E2E8F0]">{t.guestName}</div>
                   <div className="text-xs text-[#6b6a72]">{t.activityName}</div>
+                  {(t.addOns || []).length > 0 && (
+                    <div className="text-[10px] text-[#C6A15B] mt-0.5">+ {(t.addOns || []).map((a) => a.name).join(", ")}</div>
+                  )}
                 </td>
-                <td className="px-4 py-3 text-right text-[#E2E8F0] whitespace-nowrap">{idr(t.costPrice)}</td>
+                <td className="px-4 py-3 text-right text-[#E2E8F0] whitespace-nowrap">{idr(txGrossCost(t))}</td>
                 <td className="px-4 py-3 text-right text-[#9a99a1] whitespace-nowrap">{idr(txVendorTotal(t))}</td>
                 <td className="px-4 py-3 text-right text-green-400 font-semibold whitespace-nowrap">{idr(txRevenue(t))}</td>
                 <td className="px-4 py-3">
@@ -3992,6 +4036,9 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
               <div>
                 <p className="text-[#E2E8F0] font-semibold">{t.guestName}</p>
                 <p className="text-xs text-[#6b6a72]">{t.activityName}</p>
+                {(t.addOns || []).length > 0 && (
+                  <p className="text-[10px] text-[#C6A15B] mt-0.5">+ {(t.addOns || []).map((a) => a.name).join(", ")}</p>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button onClick={() => openEdit(t)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
@@ -4005,7 +4052,7 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
             <div className="grid grid-cols-3 gap-2 text-center border-t border-[#2a2930] pt-3">
               <div>
                 <p className="text-[10px] uppercase text-[#6b6a72]">Pokok</p>
-                <p className="text-sm text-[#E2E8F0]">{idr(t.costPrice)}</p>
+                <p className="text-sm text-[#E2E8F0]">{idr(txGrossCost(t))}</p>
               </div>
               <div>
                 <p className="text-[10px] uppercase text-[#6b6a72]">Komisi</p>
@@ -4385,7 +4432,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
       ? operational.filter((o) => new Date(o.date).getFullYear() === reportYear)
       : operational;
 
-  const cost = scopedTx.reduce((s, t) => s + (Number(t.costPrice) || 0), 0);
+  const cost = scopedTx.reduce((s, t) => s + txGrossCost(t), 0);
   const vendorTotal = scopedTx.reduce((s, t) => s + txVendorTotal(t), 0);
   const refund = scopedTx.reduce((s, t) => s + (Number(t.refund) || 0), 0);
   const revenue = scopedTx.reduce((s, t) => s + txRevenue(t), 0);
@@ -4412,7 +4459,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
   const labaRugiRows = buildPeriods(viewMode).map((p) => {
     const txs = transactions.filter((t) => p.test(new Date(t.date)));
     const opsP = operational.filter((o) => p.test(new Date(o.date))).reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
-    const costP = txs.reduce((s, t) => s + (Number(t.costPrice) || 0), 0);
+    const costP = txs.reduce((s, t) => s + txGrossCost(t), 0);
     const instrP = txs.reduce((s, t) => s + txVendorTotal(t), 0);
     const refundP = txs.reduce((s, t) => s + (Number(t.refund) || 0), 0);
     const revenueP = txs.reduce((s, t) => s + txRevenue(t), 0);

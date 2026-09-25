@@ -60,6 +60,48 @@ create policy "authenticated_update" on app_state
   using (true)
   with check (true);
 
+-- 1b) Safety net: log the PREVIOUS value of any app_state row right before
+--     it gets overwritten, so an accidental full-blob overwrite (e.g. from a
+--     stale browser tab still running old buggy code) is always recoverable
+--     from history instead of being permanently lost with no trace.
+create table if not exists app_state_history (
+  id bigserial primary key,
+  key text not null,
+  value jsonb not null,
+  changed_at timestamptz not null default now()
+);
+
+create index if not exists app_state_history_key_idx on app_state_history (key, changed_at desc);
+
+create or replace function log_app_state_history()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if old.value is distinct from new.value then
+    insert into app_state_history (key, value, changed_at) values (old.key, old.value, now());
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists app_state_history_trigger on app_state;
+create trigger app_state_history_trigger
+before update on app_state
+for each row
+execute function log_app_state_history();
+
+alter table app_state_history enable row level security;
+grant select on app_state_history to authenticated;
+
+drop policy if exists "authenticated_read_history" on app_state_history;
+create policy "authenticated_read_history" on app_state_history
+  for select
+  to authenticated
+  using (true);
+
 -- 2) Reservations — tabel nyata untuk booking dari pengunjung.
 --    Pengunjung (tanpa login) hanya boleh MENAMBAH booking baru.
 --    Hanya admin yang boleh melihat, mengubah status, atau menghapus.
