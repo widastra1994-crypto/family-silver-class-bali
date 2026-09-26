@@ -72,6 +72,7 @@ async function loadAppState(accessToken) {
 
 function useAppStateSync(key, value, ready, onStatus) {
   const skipRef = useRef(true);
+  const seqRef = useRef(0);
   useEffect(() => {
     // Re-arm the skip whenever state goes un-ready, so a reload (e.g. after
     // login) doesn't immediately upload the values it just fetched.
@@ -81,10 +82,13 @@ function useAppStateSync(key, value, ready, onStatus) {
     // admin action (a Save/Add/Delete click), never from continuous typing, so
     // there's nothing to batch — and a delay only widens the window where a
     // closed tab / quick navigation drops the write before it ever fires.
-    let cancelled = false;
+    const seq = ++seqRef.current;
     if (onStatus) onStatus({ state: "saving", key });
     supabase.from("app_state").upsert({ key, value, updated_at: new Date().toISOString() }).then(({ error }) => {
-      if (cancelled) return;
+      // Only a newer save of this same key makes this result stale. A session
+      // change must not swallow it, or a save that failed as the session died
+      // would never be reported.
+      if (seq !== seqRef.current) return;
       if (error) {
         console.error("Gagal menyimpan " + key, error);
         if (onStatus) onStatus({ state: "error", key, message: error.message });
@@ -92,7 +96,6 @@ function useAppStateSync(key, value, ready, onStatus) {
         onStatus({ state: "saved", key });
       }
     });
-    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, value, ready]);
 }
@@ -5379,6 +5382,7 @@ function FamilySilverClassBaliApp() {
   const [stateLoadError, setStateLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveStatus, setSaveStatus] = useState({ state: "idle" });
+  const [reloginMsg, setReloginMsg] = useState("");
   const userId = session && session.user ? session.user.id : null;
   // Derived, not stored: goes false in the same render the user changes, so the
   // admin UI and autosave never run on data that was loaded for another session.
@@ -5410,7 +5414,9 @@ function FamilySilverClassBaliApp() {
     let cancelled = false;
     setLoadedForUser(undefined);
     setStateLoadError(false);
-    setSaveStatus({ state: "idle" });
+    setReloginMsg("");
+    // Keep a pending error visible so the admin learns the last save failed.
+    setSaveStatus((s) => (s.state === "error" ? s : { state: "idle" }));
     async function init() {
       if (!supabase) { setLoadedForUser(userId); return; }
       let accessToken = null;
@@ -5425,7 +5431,7 @@ function FamilySilverClassBaliApp() {
       if (cancelled) return;
       // Never mark state ready on a failed fetch: saving from demo defaults
       // would overwrite the real data on the server.
-      if (!map || (userId && !rsv)) { setStateLoadError(true); return; }
+      if (!map) { setStateLoadError(true); return; }
       // Key yang belum pernah disimpan admin tetap memakai nilai default lokal
       // di atas; begitu admin mengedit bagian itu, useAppStateSync akan menyimpannya.
       const setters = {
@@ -5443,9 +5449,15 @@ function FamilySilverClassBaliApp() {
         }
       });
       if (rsv) setReservations(rsv);
+      // The map is still applied above so the public site shows real content,
+      // but the admin stays locked until reservations load too.
+      if (userId && !rsv) { setStateLoadError(true); return; }
       setLoadedForUser(userId);
     }
-    init();
+    init().catch((err) => {
+      console.error("Gagal memuat data", err);
+      if (!cancelled) setStateLoadError(true);
+    });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authChecked, userId, loadAttempt]);
@@ -5475,18 +5487,30 @@ function FamilySilverClassBaliApp() {
         <CustomerPage page={page} setPage={setPage} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} catalog={catalog} perGram={perGram} extras={extras} reviews={reviews} settings={settings} galleryPhotos={galleryPhotos} guestGalleryPhotos={guestGalleryPhotos} instructors={instructors} asSeenIn={asSeenIn} heroPhotos={heroPhotos} instagramPhotos={instagramPhotos} setReservations={setReservations} blogPosts={blogPosts} />
       ) : !authChecked ? (
         <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memeriksa sesi...</div>
-      ) : !session ? (
+      ) : !userId ? (
         <LoginGate onCancel={() => setMode("customer")} />
       ) : !stateReady ? (
         <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">
           {stateLoadError ? (
             <div className="text-center px-6">
               <p className="text-[#E2E8F0] mb-1">Gagal memuat data dari server.</p>
-              <p className="mb-4">Periksa koneksi internet Anda, lalu coba lagi.</p>
+              <p className="mb-4">Periksa koneksi internet Anda, lalu coba lagi. Setelah koneksi kembali, mungkin perlu menunggu sekitar 1 menit.</p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <button onClick={() => setLoadAttempt((n) => n + 1)} className="px-5 py-2 rounded-full bg-[#C6A15B] text-[#16151A] font-medium hover:opacity-90">Coba lagi</button>
-                <button onClick={() => { if (supabase) supabase.auth.signOut(); }} className="px-5 py-2 rounded-full border border-[#2a2930] text-[#E2E8F0] hover:border-[#C6A15B]">Login ulang</button>
+                <button
+                  onClick={async () => {
+                    if (!supabase) return;
+                    setReloginMsg("");
+                    const { error } = await supabase.auth.signOut();
+                    if (error) setReloginMsg("Server login belum bisa dihubungi. Tunggu sekitar 1 menit, lalu coba lagi.");
+                  }}
+                  className="px-5 py-2 rounded-full border border-[#2a2930] text-[#E2E8F0] hover:border-[#C6A15B]"
+                >
+                  Login ulang
+                </button>
+                <button onClick={() => setMode("customer")} className="px-5 py-2 rounded-full text-[#9a99a1] hover:text-[#E2E8F0]">Kembali ke website</button>
               </div>
+              {reloginMsg && <p className="mt-4 text-[#e0ac6a]">{reloginMsg}</p>}
             </div>
           ) : "Memuat data dari server..."}
         </div>
