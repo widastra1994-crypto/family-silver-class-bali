@@ -3721,6 +3721,14 @@ function BlogManager({ posts, setPosts }) {
 function idr(n) {
   return "Rp " + Math.round(Number(n) || 0).toLocaleString("id-ID");
 }
+const DEFAULT_KOMISI_PER_PAX = 100000;
+function vendorRatePerPax(vendor) {
+  if (!vendor || vendor.ratePerPax === undefined || vendor.ratePerPax === null || vendor.ratePerPax === "") return DEFAULT_KOMISI_PER_PAX;
+  return Number(vendor.ratePerPax) || 0;
+}
+function parseRatePerPax(value) {
+  return value === "" || value === null || value === undefined ? DEFAULT_KOMISI_PER_PAX : Number(value) || 0;
+}
 function txVendorTotal(tx) {
   return (tx.instructorPayments || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
 }
@@ -3777,18 +3785,44 @@ function PeriodFilterBar({ period, setPeriod, from, setFrom, to, setTo }) {
 }
 
 function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, initial }) {
-  const blank = { date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "", instructorPayments: [], addOns: [] };
-  const [form, setForm] = useState(initial || blank);
+  const autoAmount = (pax, vendorId) => (Number(pax) || 0) * vendorRatePerPax(vendors.find((v) => v.id === vendorId));
+  const makeBlank = () => ({
+    date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "",
+    instructorPayments: vendors[0] ? [{ id: "p-" + Date.now(), vendorId: vendors[0].id, amount: autoAmount(1, vendors[0].id), paid: false, note: "", auto: true }] : [],
+    addOns: [],
+  });
+  // `auto` is UI-only (stripped on save). An existing payment counts as automatic
+  // only if it still equals pax × the instructor's current rate, so custom
+  // amounts and amounts from an older rate are never silently recalculated.
+  const prepareExisting = (tx) => ({
+    addOns: [],
+    ...tx,
+    instructorPayments: (tx.instructorPayments || []).map((p) => ({ ...p, auto: Number(p.amount) === autoAmount(tx.pax, p.vendorId) })),
+  });
+  const [form, setForm] = useState(() => (initial ? prepareExisting(initial) : makeBlank()));
   const savingRef = useRef(false);
 
-  useEffect(() => { setForm(initial ? { addOns: [], ...initial } : blank); savingRef.current = false; }, [initial, open]);
+  useEffect(() => { setForm(initial ? prepareExisting(initial) : makeBlank()); savingRef.current = false; }, [initial, open]);
 
   if (!open) return null;
 
   const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const addPayment = () => setForm((f) => ({ ...f, instructorPayments: [...f.instructorPayments, { id: "p-" + Date.now(), vendorId: vendors[0] ? vendors[0].id : "", amount: "", paid: false, note: "" }] }));
-  const updatePayment = (id, k, v) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.map((p) => (p.id === id ? { ...p, [k]: v } : p)) }));
+  const updatePax = (v) => setForm((f) => ({ ...f, pax: v, instructorPayments: f.instructorPayments.map((p) => (p.auto ? { ...p, amount: autoAmount(v, p.vendorId) } : p)) }));
+  const addPayment = () => setForm((f) => {
+    const vendorId = vendors[0] ? vendors[0].id : "";
+    return { ...f, instructorPayments: [...f.instructorPayments, { id: "p-" + Date.now(), vendorId, amount: vendorId ? autoAmount(f.pax, vendorId) : "", paid: false, note: "", auto: !!vendorId }] };
+  });
+  const updatePayment = (id, k, v) => setForm((f) => ({
+    ...f,
+    instructorPayments: f.instructorPayments.map((p) => {
+      if (p.id !== id) return p;
+      if (k === "amount") return { ...p, amount: v, auto: false };
+      if (k === "vendorId" && p.auto) return { ...p, vendorId: v, amount: autoAmount(f.pax, v) };
+      return { ...p, [k]: v };
+    }),
+  }));
+  const recalcPayment = (id) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.map((p) => (p.id === id ? { ...p, amount: autoAmount(f.pax, p.vendorId), auto: true } : p)) }));
   const removePayment = (id) => setForm((f) => ({ ...f, instructorPayments: f.instructorPayments.filter((p) => p.id !== id) }));
   const addAddOn = () => setForm((f) => ({ ...f, addOns: [...(f.addOns || []), { id: "addon-" + Date.now(), name: "", price: "" }] }));
   const updateAddOn = (id, k, v) => setForm((f) => ({ ...f, addOns: (f.addOns || []).map((a) => (a.id === id ? { ...a, [k]: v } : a)) }));
@@ -3805,13 +3839,15 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
     if (savingRef.current) return;
     if (!form.guestName.trim() || !form.activityName.trim() || !form.costPrice) return;
     savingRef.current = true;
+    const pax = Number(form.pax) || 1;
     onSave({
       ...form,
       id: form.id || ("TX-" + Date.now()),
       costPrice: Number(form.costPrice) || 0,
       refund: Number(form.refund) || 0,
-      pax: Number(form.pax) || 1,
+      pax,
       addOns: (form.addOns || []).filter((a) => a.name.trim()).map((a) => ({ ...a, price: Number(a.price) || 0 })),
+      instructorPayments: form.instructorPayments.map(({ auto, ...p }) => ({ ...p, amount: auto ? autoAmount(pax, p.vendorId) : Number(p.amount) || 0 })),
     });
     onClose();
   };
@@ -3838,7 +3874,7 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
             </div>
             <div>
               <label className="text-xs text-[#9a99a1] mb-1 block">Jumlah Pax *</label>
-              <input type="number" min="1" value={form.pax} onChange={(e) => update("pax", e.target.value)} className={inputCls} />
+              <input type="number" min="1" value={form.pax} onChange={(e) => updatePax(e.target.value)} className={inputCls} />
             </div>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -3895,7 +3931,7 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
             <div className="flex items-center justify-between mb-3 gap-3">
               <div>
                 <h4 className="text-sm font-semibold text-[#E2E8F0]">Komisi Instruktur</h4>
-                <p className="text-xs text-[#9a99a1]">Bayaran ke instruktur yang menangani kelas ini. Centang "Sudah dibayar" setelah transfer.</p>
+                <p className="text-xs text-[#9a99a1]">Otomatis: jumlah pax × komisi per pax instruktur (atur di Master Data). Ketik angka sendiri kalau berbeda. Centang "Sudah dibayar" setelah transfer.</p>
               </div>
               <span className="text-sm font-semibold text-[#C6A15B] whitespace-nowrap">{idr(vendorTotal)}</span>
             </div>
@@ -3909,6 +3945,18 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
                     <input type="number" value={p.amount} onChange={(e) => updatePayment(p.id, "amount", e.target.value)} placeholder="Rp 0" className={inputCls} />
                     <button onClick={() => removePayment(p.id)} className="text-[#6b6a72] hover:text-red-400 justify-self-end shrink-0"><Trash2 className="w-4 h-4" /></button>
                   </div>
+                  {p.vendorId && (() => {
+                    const rate = vendorRatePerPax(vendors.find((v) => v.id === p.vendorId));
+                    const formula = (Number(form.pax) || 0) + " pax × " + idr(rate);
+                    return p.auto ? (
+                      <p className="text-[11px] text-[#C6A15B] px-1">Otomatis: {formula}</p>
+                    ) : (
+                      <p className="text-[11px] text-[#6b6a72] px-1">
+                        Diisi manual ·{" "}
+                        <button type="button" onClick={() => recalcPayment(p.id)} className="text-[#C6A15B] hover:underline">Hitung otomatis ({formula})</button>
+                      </p>
+                    );
+                  })()}
                   <div className="flex items-center gap-3">
                     <input value={p.note} onChange={(e) => updatePayment(p.id, "note", e.target.value)} placeholder="Keterangan (opsional)" className={inputCls + " flex-1"} />
                     <label className="flex items-center gap-1.5 text-xs text-[#9a99a1] whitespace-nowrap shrink-0">
@@ -4220,18 +4268,19 @@ function AccountingOperasionalTab({ operational, setOperational }) {
 }
 
 function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transactions }) {
-  const [vendorForm, setVendorForm] = useState({ name: "", phone: "", note: "" });
+  const emptyVendorForm = { name: "", phone: "", note: "", ratePerPax: DEFAULT_KOMISI_PER_PAX };
+  const [vendorForm, setVendorForm] = useState(emptyVendorForm);
   const [appForm, setAppForm] = useState("");
   const [editingVendorId, setEditingVendorId] = useState(null);
-  const [vendorEditDraft, setVendorEditDraft] = useState({ name: "", phone: "", note: "" });
+  const [vendorEditDraft, setVendorEditDraft] = useState(emptyVendorForm);
   const [editingAppId, setEditingAppId] = useState(null);
   const [appEditDraft, setAppEditDraft] = useState("");
   const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
 
   const addVendor = () => {
     if (!vendorForm.name.trim()) return;
-    setVendors([...vendors, { id: "vendor-" + Date.now(), ...vendorForm }]);
-    setVendorForm({ name: "", phone: "", note: "" });
+    setVendors([...vendors, { id: "vendor-" + Date.now(), ...vendorForm, ratePerPax: parseRatePerPax(vendorForm.ratePerPax) }]);
+    setVendorForm(emptyVendorForm);
   };
   const removeVendor = (id) => {
     const linkedCount = transactions.filter((t) => (t.instructorPayments || []).some((p) => p.vendorId === id)).length;
@@ -4240,13 +4289,19 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
       : "Hapus instruktur ini?";
     if (window.confirm(msg)) setVendors(vendors.filter((v) => v.id !== id));
   };
-  const startEditVendor = (v) => { setEditingVendorId(v.id); setVendorEditDraft({ name: v.name, phone: v.phone || "", note: v.note || "" }); };
+  const startEditVendor = (v) => { setEditingVendorId(v.id); setVendorEditDraft({ name: v.name, phone: v.phone || "", note: v.note || "", ratePerPax: vendorRatePerPax(v) }); };
   const cancelEditVendor = () => setEditingVendorId(null);
   const saveEditVendor = () => {
     if (!vendorEditDraft.name.trim()) return;
-    setVendors(vendors.map((v) => (v.id === editingVendorId ? { ...v, ...vendorEditDraft } : v)));
+    setVendors(vendors.map((v) => (v.id === editingVendorId ? { ...v, ...vendorEditDraft, ratePerPax: parseRatePerPax(vendorEditDraft.ratePerPax) } : v)));
     setEditingVendorId(null);
   };
+  const rateInput = (value, onChange) => (
+    <div className="relative">
+      <input type="number" min="0" step="1000" value={value} onChange={(e) => onChange(e.target.value)} title="Komisi per pax" className={inputCls + " pr-12"} />
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#6b6a72] pointer-events-none">/ pax</span>
+    </div>
+  );
 
   const addApp = () => {
     if (!appForm.trim()) return;
@@ -4280,20 +4335,20 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
     <div className="space-y-8">
       <div>
         <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1">Master Data</h2>
-        <p className="text-xs text-[#9a99a1]">Kelola daftar instruktur/pihak yang dibayar dan sumber booking.</p>
+        <p className="text-xs text-[#9a99a1]">Kelola daftar instruktur/pihak yang dibayar dan sumber booking. "Komisi / Pax" dipakai untuk menghitung komisi instruktur otomatis di Rekapan (jumlah pax × komisi per pax).</p>
       </div>
 
       <div>
         <h3 className="text-sm font-semibold text-[#E2E8F0] mb-3">Instruktur</h3>
         <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4 overflow-x-auto">
-          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_auto] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[560px]">
-            <span>Nama</span><span>Telepon</span><span>Total Komisi</span><span>Belum Dibayar</span><span></span>
+          <div className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[680px]">
+            <span>Nama</span><span>Telepon</span><span>Komisi / Pax</span><span>Total Komisi</span><span>Belum Dibayar</span><span></span>
           </div>
           {vendors.map((v) => {
             const stat = vendorStats(v.id);
             const isEditing = editingVendorId === v.id;
             return (
-              <div key={v.id} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_auto] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm min-w-[560px]">
+              <div key={v.id} className="grid grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm min-w-[680px]">
                 {isEditing ? (
                   <>
                     <div className="space-y-1">
@@ -4301,6 +4356,7 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
                       <input value={vendorEditDraft.note} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, note: e.target.value })} placeholder="Catatan" className={inputCls} />
                     </div>
                     <input value={vendorEditDraft.phone} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, phone: e.target.value })} placeholder="Telepon" className={inputCls} />
+                    {rateInput(vendorEditDraft.ratePerPax, (val) => setVendorEditDraft({ ...vendorEditDraft, ratePerPax: val }))}
                     <span className="text-[#E2E8F0]">{idr(stat.total)}</span>
                     <span className={stat.unpaid > 0 ? "text-yellow-400 font-semibold" : "text-[#6b6a72]"}>{stat.unpaid > 0 ? idr(stat.unpaid) : "Lunas"}</span>
                     <div className="flex items-center gap-2 justify-self-end">
@@ -4315,6 +4371,7 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
                       {v.note && <p className="text-xs text-[#6b6a72]">{v.note}</p>}
                     </div>
                     <span className="text-[#9a99a1]">{v.phone || "–"}</span>
+                    <span className="text-[#C6A15B]">{idr(vendorRatePerPax(v))}</span>
                     <span className="text-[#E2E8F0]">{idr(stat.total)}</span>
                     <span className={stat.unpaid > 0 ? "text-yellow-400 font-semibold" : "text-[#6b6a72]"}>{stat.unpaid > 0 ? idr(stat.unpaid) : "Lunas"}</span>
                     <div className="flex items-center gap-2 justify-self-end">
@@ -4341,6 +4398,8 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
                     <input value={vendorEditDraft.name} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, name: e.target.value })} placeholder="Nama" className={inputCls} />
                     <input value={vendorEditDraft.phone} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, phone: e.target.value })} placeholder="Telepon" className={inputCls} />
                     <input value={vendorEditDraft.note} onChange={(e) => setVendorEditDraft({ ...vendorEditDraft, note: e.target.value })} placeholder="Catatan" className={inputCls} />
+                    <label className="text-xs text-[#9a99a1] block">Komisi per pax</label>
+                    {rateInput(vendorEditDraft.ratePerPax, (val) => setVendorEditDraft({ ...vendorEditDraft, ratePerPax: val }))}
                     <div className="flex gap-2">
                       <GlowButton className="flex-1" onClick={saveEditVendor}><Check className="w-4 h-4" /> Simpan</GlowButton>
                       <button onClick={cancelEditVendor} className="px-4 text-sm text-[#9a99a1] hover:text-red-400 border border-[#2a2930] rounded-full">Batal</button>
@@ -4353,6 +4412,7 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
                         <p className="text-[#E2E8F0] font-semibold">{v.name}</p>
                         {v.note && <p className="text-xs text-[#6b6a72]">{v.note}</p>}
                         <p className="text-xs text-[#6b6a72] mt-0.5">{v.phone || "–"}</p>
+                        <p className="text-xs text-[#C6A15B] mt-0.5">Komisi per pax: {idr(vendorRatePerPax(v))}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button onClick={() => startEditVendor(v)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
@@ -4369,10 +4429,11 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
             );
           })}
         </div>
-        <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-4 grid sm:grid-cols-[1.5fr_1fr_1fr_auto] gap-2">
+        <div className="bg-[#1c1b21] border border-[#C6A15B]/20 rounded-xl p-4 grid sm:grid-cols-[1.5fr_1fr_1fr_1fr_auto] gap-2">
           <input placeholder="Nama instruktur" value={vendorForm.name} onChange={(e) => setVendorForm({ ...vendorForm, name: e.target.value })} className={inputCls} />
           <input placeholder="Telepon" value={vendorForm.phone} onChange={(e) => setVendorForm({ ...vendorForm, phone: e.target.value })} className={inputCls} />
           <input placeholder="Catatan" value={vendorForm.note} onChange={(e) => setVendorForm({ ...vendorForm, note: e.target.value })} className={inputCls} />
+          {rateInput(vendorForm.ratePerPax, (val) => setVendorForm({ ...vendorForm, ratePerPax: val }))}
           <GlowButton onClick={addVendor}><Plus className="w-4 h-4" /> Tambah</GlowButton>
         </div>
       </div>
