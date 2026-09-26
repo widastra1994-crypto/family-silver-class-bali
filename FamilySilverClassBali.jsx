@@ -42,9 +42,14 @@ const APP_STATE_KEYS = [
   "accountingVendors", "accountingApps", "blogPosts",
 ];
 
-async function loadAppState() {
+// accessToken pins the request to the admin's session. Without it, supabase-js
+// silently falls back to the public anon key when the session can't be
+// refreshed, and RLS then returns only the public rows with no error.
+async function loadAppState(accessToken) {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("app_state").select("key, value");
+  let query = supabase.from("app_state").select("key, value");
+  if (accessToken) query = query.setHeader("Authorization", "Bearer " + accessToken);
+  const { data, error } = await query;
   if (error || !data) return null;
   const map = {};
   data.forEach((row) => { map[row.key] = row.value; });
@@ -54,7 +59,9 @@ async function loadAppState() {
 function useAppStateSync(key, value, ready, onStatus) {
   const skipRef = useRef(true);
   useEffect(() => {
-    if (!ready || !supabase) return;
+    // Re-arm the skip whenever state goes un-ready, so a reload (e.g. after
+    // login) doesn't immediately upload the values it just fetched.
+    if (!ready || !supabase) { skipRef.current = true; return; }
     if (skipRef.current) { skipRef.current = false; return; }
     // Saved immediately (no debounce): every write here comes from a discrete
     // admin action (a Save/Add/Delete click), never from continuous typing, so
@@ -86,9 +93,11 @@ async function uploadPhotoFile(file) {
   return data && data.publicUrl ? data.publicUrl : null;
 }
 
-async function loadReservationsTable() {
+async function loadReservationsTable(accessToken) {
   if (!supabase) return null;
-  const { data, error } = await supabase.from("reservations").select("id, name, date, slot, pax, status").order("created_at", { ascending: false });
+  let query = supabase.from("reservations").select("id, name, date, slot, pax, status").order("created_at", { ascending: false });
+  if (accessToken) query = query.setHeader("Authorization", "Bearer " + accessToken);
+  const { data, error } = await query;
   if (error || !data) return null;
   return data;
 }
@@ -5352,8 +5361,14 @@ export default function FamilySilverClassBaliApp() {
   const [accountingVendors, setAccountingVendors] = useState(initialAccountingVendors);
   const [accountingApps, setAccountingApps] = useState(initialAccountingApps);
   const [blogPosts, setBlogPosts] = useState(initialBlogPosts);
-  const [stateReady, setStateReady] = useState(false);
+  const [loadedForUser, setLoadedForUser] = useState(undefined);
+  const [stateLoadError, setStateLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [saveStatus, setSaveStatus] = useState({ state: "idle" });
+  const userId = session && session.user ? session.user.id : null;
+  // Derived, not stored: goes false in the same render the user changes, so the
+  // admin UI and autosave never run on data that was loaded for another session.
+  const stateReady = loadedForUser === userId;
 
   useEffect(() => {
     if (saveStatus.state !== "saved") return;
@@ -5373,37 +5388,53 @@ export default function FamilySilverClassBaliApp() {
     return () => listener.subscription.unsubscribe();
   }, []);
 
+  // Reload whenever the signed-in user changes: RLS only returns the admin-only
+  // keys (accounting etc.) to an authenticated session, so data fetched before
+  // login leaves those keys on their demo defaults.
   useEffect(() => {
+    if (!authChecked) return;
     let cancelled = false;
+    setLoadedForUser(undefined);
+    setStateLoadError(false);
+    setSaveStatus({ state: "idle" });
     async function init() {
-      if (!supabase) { setStateReady(true); return; }
-      const [map, rsv] = await Promise.all([loadAppState(), loadReservationsTable()]);
-      if (cancelled) return;
-      if (map) {
-        // Key yang belum pernah disimpan admin tetap memakai nilai default lokal
-        // di atas; begitu admin mengedit bagian itu, useAppStateSync akan menyimpannya.
-        const setters = {
-          content: setContent, catalog: setCatalog, perGram: setPerGram, extras: setExtras,
-          settings: setSettings, galleryPhotos: setGalleryPhotos, reviews: setReviews,
-          heroPhotos: setHeroPhotos, guestGalleryPhotos: setGuestGalleryPhotos,
-          instructors: setInstructors, asSeenIn: setAsSeenIn, instagramPhotos: setInstagramPhotos,
-          accountingTransactions: setAccountingTransactions, accountingOperational: setAccountingOperational,
-          accountingVendors: setAccountingVendors, accountingApps: setAccountingApps,
-          blogPosts: setBlogPosts,
-        };
-        APP_STATE_KEYS.forEach((key) => {
-          if (Object.prototype.hasOwnProperty.call(map, key)) {
-            setters[key](map[key]);
-          }
-        });
+      if (!supabase) { setLoadedForUser(userId); return; }
+      let accessToken = null;
+      if (userId) {
+        const { data } = await supabase.auth.getSession();
+        if (cancelled) return;
+        const current = data && data.session;
+        if (!current || !current.user || current.user.id !== userId) { setStateLoadError(true); return; }
+        accessToken = current.access_token;
       }
+      const [map, rsv] = await Promise.all([loadAppState(accessToken), loadReservationsTable(accessToken)]);
+      if (cancelled) return;
+      // Never mark state ready on a failed fetch: saving from demo defaults
+      // would overwrite the real data on the server.
+      if (!map || (userId && !rsv)) { setStateLoadError(true); return; }
+      // Key yang belum pernah disimpan admin tetap memakai nilai default lokal
+      // di atas; begitu admin mengedit bagian itu, useAppStateSync akan menyimpannya.
+      const setters = {
+        content: setContent, catalog: setCatalog, perGram: setPerGram, extras: setExtras,
+        settings: setSettings, galleryPhotos: setGalleryPhotos, reviews: setReviews,
+        heroPhotos: setHeroPhotos, guestGalleryPhotos: setGuestGalleryPhotos,
+        instructors: setInstructors, asSeenIn: setAsSeenIn, instagramPhotos: setInstagramPhotos,
+        accountingTransactions: setAccountingTransactions, accountingOperational: setAccountingOperational,
+        accountingVendors: setAccountingVendors, accountingApps: setAccountingApps,
+        blogPosts: setBlogPosts,
+      };
+      APP_STATE_KEYS.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(map, key)) {
+          setters[key](map[key]);
+        }
+      });
       if (rsv) setReservations(rsv);
-      setStateReady(true);
+      setLoadedForUser(userId);
     }
     init();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authChecked, userId, loadAttempt]);
 
   useAppStateSync("content", content, stateReady, setSaveStatus);
   useAppStateSync("catalog", catalog, stateReady, setSaveStatus);
@@ -5433,7 +5464,18 @@ export default function FamilySilverClassBaliApp() {
       ) : !session ? (
         <LoginGate onCancel={() => setMode("customer")} />
       ) : !stateReady ? (
-        <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">Memuat data dari server...</div>
+        <div className="min-h-screen bg-[#16151A] flex items-center justify-center text-[#6b6a72] text-sm">
+          {stateLoadError ? (
+            <div className="text-center px-6">
+              <p className="text-[#E2E8F0] mb-1">Gagal memuat data dari server.</p>
+              <p className="mb-4">Periksa koneksi internet Anda, lalu coba lagi.</p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button onClick={() => setLoadAttempt((n) => n + 1)} className="px-5 py-2 rounded-full bg-[#C6A15B] text-[#16151A] font-medium hover:opacity-90">Coba lagi</button>
+                <button onClick={() => { if (supabase) supabase.auth.signOut(); }} className="px-5 py-2 rounded-full border border-[#2a2930] text-[#E2E8F0] hover:border-[#C6A15B]">Login ulang</button>
+              </div>
+            </div>
+          ) : "Memuat data dari server..."}
+        </div>
       ) : (
         <AdminPage setMode={setMode} lang={lang} setLang={setLang} currency={currency} setCurrency={setCurrency} content={content} setContent={setContent} catalog={catalog} setCatalog={setCatalog} perGram={perGram} setPerGram={setPerGram} extras={extras} setExtras={setExtras} settings={settings} setSettings={setSettings} galleryPhotos={galleryPhotos} setGalleryPhotos={setGalleryPhotos} reviews={reviews} setReviews={setReviews} reservations={reservations} setReservations={setReservations} heroPhotos={heroPhotos} setHeroPhotos={setHeroPhotos} guestGalleryPhotos={guestGalleryPhotos} setGuestGalleryPhotos={setGuestGalleryPhotos} instructors={instructors} setInstructors={setInstructors} asSeenIn={asSeenIn} setAsSeenIn={setAsSeenIn} instagramPhotos={instagramPhotos} setInstagramPhotos={setInstagramPhotos} accountingTransactions={accountingTransactions} setAccountingTransactions={setAccountingTransactions} accountingOperational={accountingOperational} setAccountingOperational={setAccountingOperational} accountingVendors={accountingVendors} setAccountingVendors={setAccountingVendors} accountingApps={accountingApps} setAccountingApps={setAccountingApps} blogPosts={blogPosts} setBlogPosts={setBlogPosts} saveStatus={saveStatus} />
       )}
