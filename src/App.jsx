@@ -2737,6 +2737,10 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
         if (error) console.error("Gagal menyimpan reservasi", error);
       });
     }
+    // Google Ads conversion: "Booking via WhatsApp" (Submit lead form).
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", "conversion", { send_to: "AW-17532092276/2bdQCMHl5YUdEPT--adB" });
+    }
   };
 
   return (
