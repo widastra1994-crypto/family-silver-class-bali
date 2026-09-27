@@ -736,7 +736,7 @@ const initialCatalog = [
 const initialPerGram = 45000;
 
 const initialSettings = {
-  whatsappNumber: "6281234567890",
+  whatsappNumber: "6285929812666",
   maxPaxPerSlot: 6,
   googleRating: 5.0,
   googleReviewCount: 215,
@@ -2440,6 +2440,23 @@ function InstagramStrip({ lang, photos, handle }) {
 /*  CUSTOMER — FLOATING WHATSAPP BUTTON                                */
 /* ------------------------------------------------------------------ */
 
+// Google Ads conversion "Booking via WhatsApp" (Submit lead form). The action
+// counts one conversion per ad click, so a guest who taps several WhatsApp
+// buttons is still counted once.
+function trackWhatsAppConversion() {
+  if (typeof window !== "undefined" && typeof window.gtag === "function") {
+    window.gtag("event", "conversion", { send_to: "AW-17532092276/2bdQCMHl5YUdEPT--adB" });
+  }
+}
+
+function formatWhatsAppDisplay(digits) {
+  if (digits.startsWith("62") && digits.length >= 11) {
+    const rest = digits.slice(2);
+    return "+62 " + rest.slice(0, 3) + "-" + rest.slice(3, 7) + "-" + rest.slice(7);
+  }
+  return "+" + digits;
+}
+
 function FloatingWhatsApp({ whatsappNumber }) {
   const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
   const [show, setShow] = useState(false);
@@ -2457,6 +2474,7 @@ function FloatingWhatsApp({ whatsappNumber }) {
       href={"https://wa.me/" + digits}
       target="_blank"
       rel="noreferrer"
+      onClick={trackWhatsAppConversion}
       className={"fixed bottom-24 sm:bottom-5 left-5 z-40 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg animate-whatsapp-pulse hover:scale-105 transition-all duration-300 " + (show ? "opacity-100 scale-100" : "opacity-0 scale-75 pointer-events-none sm:opacity-100 sm:scale-100 sm:pointer-events-auto")}
       aria-label="Chat on WhatsApp"
     >
@@ -2598,7 +2616,7 @@ function SEOTechnicalPanel({ content, catalog, lang, currency }) {
         image: "https://familysilverclassbali.com/og-image.jpg",
         address: { "@type": "PostalAddress", streetAddress: "Jl. Padma Utara", addressLocality: "Legian, Kuta", addressRegion: "Bali", postalCode: "80361", addressCountry: "ID" },
         geo: { "@type": "GeoCoordinates", latitude: -8.7011, longitude: 115.1697 },
-        telephone: "+62-812-0000-0000",
+        telephone: "+62-859-2981-2666",
         priceRange: currency + " " + Math.round(minPrice * curr.rate) + " - " + Math.round(maxPrice * curr.rate),
         aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "870" },
       },
@@ -2671,12 +2689,25 @@ function SEOTechnicalPanel({ content, catalog, lang, currency }) {
 /*  CUSTOMER — FOOTER                                                  */
 /* ------------------------------------------------------------------ */
 
-function Footer({ lang }) {
+function Footer({ lang, whatsappNumber }) {
   const t = (k) => tr(lang, k);
+  const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
   return (
     <footer className="mt-10">
       <div className="divider-luxury" />
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 flex items-center justify-center text-xs text-[#6b6a72]">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 flex flex-col items-center justify-center gap-3 text-xs text-[#6b6a72]">
+        {digits && (
+          <a
+            href={"https://wa.me/" + digits}
+            target="_blank"
+            rel="noreferrer"
+            onClick={trackWhatsAppConversion}
+            className="inline-flex items-center gap-2 text-sm text-[#E2E8F0] hover:text-[#25D366] transition-colors"
+          >
+            <MessageSquare className="w-4 h-4 text-[#25D366]" />
+            WhatsApp {formatWhatsAppDisplay(digits)}
+          </a>
+        )}
         <span>© 2026 {t("footer_rights")}</span>
       </div>
     </footer>
@@ -2763,10 +2794,7 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
         if (error) console.error("Gagal menyimpan reservasi", error);
       });
     }
-    // Google Ads conversion: "Booking via WhatsApp" (Submit lead form).
-    if (typeof window !== "undefined" && typeof window.gtag === "function") {
-      window.gtag("event", "conversion", { send_to: "AW-17532092276/2bdQCMHl5YUdEPT--adB" });
-    }
+    trackWhatsAppConversion();
   };
 
   return (
@@ -2800,7 +2828,7 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
         <PackagesPage lang={lang} currency={currency} catalog={catalog} perGram={perGram} extras={extras} settings={settings} onBookingConfirm={onBookingConfirm} content={content} />
       )}
 
-      <Footer lang={lang} />
+      <Footer lang={lang} whatsappNumber={settings.whatsappNumber} />
       <FloatingWhatsApp whatsappNumber={settings.whatsappNumber} />
     </div>
   );
