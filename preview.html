@@ -112,7 +112,7 @@ async function uploadPhotoFile(file) {
 
 async function loadReservationsTable(accessToken) {
   if (!supabase) return null;
-  let query = supabase.from("reservations").select("id, name, date, slot, pax, status").order("created_at", { ascending: false });
+  let query = supabase.from("reservations").select("id, name, date, slot, pax, status, created_at, email, whatsapp, package, extras, meeting, pickup_note, estimated_total, admin_note").order("created_at", { ascending: false });
   if (accessToken) query = query.setHeader("Authorization", "Bearer " + accessToken);
   const { data, error } = await query;
   if (error || !data) return null;
@@ -1453,7 +1453,19 @@ function BookingModal({ open, onClose, lang, currency, whatsappNumber, pickupAre
     const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
     const url = "https://wa.me/" + digits + "?text=" + encodeURIComponent(message);
     window.open(url, "_blank", "noopener,noreferrer");
-    onConfirm({ name: form.name, date: form.date, slot: form.slot, pax: participants });
+    onConfirm({
+      name: form.name,
+      date: form.date,
+      slot: form.slot,
+      pax: participants,
+      email: form.email,
+      whatsapp: form.whatsapp,
+      package: jewelryLabel + " (" + participants + " pax, +" + extraGrams + "g extra silver)",
+      extras: selectedExtraNames && selectedExtraNames.length > 0 ? selectedExtraNames.join(", ") : null,
+      meeting: meetingLine,
+      pickup_note: form.meetOption === "pickup" ? form.pickupNote : null,
+      estimated_total: formatPrice(grandTotal, currency),
+    });
     setForm({ name: "", email: "", whatsapp: "", date: "", slot: "", meetOption: "studio", pickupAreaId: "", pickupNote: "" });
     onClose();
   };
@@ -2787,7 +2799,11 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
   const [selectedPostId, setSelectedPostId] = useState(null);
 
   const onBookingConfirm = (data) => {
-    const newReservation = { id: "RSV-" + Date.now(), name: data.name, date: data.date, slot: data.slot || null, pax: data.pax, status: "Pending" };
+    const newReservation = {
+      id: "RSV-" + Date.now(), name: data.name, date: data.date, slot: data.slot || null, pax: data.pax, status: "Pending",
+      email: data.email || null, whatsapp: data.whatsapp || null, package: data.package || null, extras: data.extras || null,
+      meeting: data.meeting || null, pickup_note: data.pickup_note || null, estimated_total: data.estimated_total || null,
+    };
     setReservations((prev) => [newReservation, ...prev]);
     if (supabase) {
       supabase.from("reservations").insert(newReservation).then(({ error }) => {
@@ -3592,21 +3608,53 @@ function ReservationsManager({ reservations, setReservations }) {
       });
     }
   };
-  const removeReservation = (id) => {
-    setReservations(reservations.filter((r) => r.id !== id));
+  const [expandedId, setExpandedId] = useState(null);
+  const [editing, setEditing] = useState(null);
+
+  const removeReservation = (r) => {
+    if (!window.confirm("Hapus reservasi atas nama " + r.name + " (" + r.date + ")? Data ini tidak bisa dikembalikan.")) return;
+    setReservations((prev) => prev.filter((x) => x.id !== r.id));
     if (supabase) {
-      supabase.from("reservations").delete().eq("id", id).then(({ error }) => {
-        if (error) console.error("Gagal hapus reservasi", error);
+      supabase.from("reservations").delete().eq("id", r.id).then(({ error }) => {
+        if (error) {
+          console.error("Gagal hapus reservasi", error);
+          window.alert("Gagal menghapus reservasi di server: " + error.message + ". Muat ulang halaman lalu coba lagi.");
+        }
       });
     }
   };
+  const saveReservation = (form) => {
+    const clean = (v) => (typeof v === "string" && v.trim() === "" ? null : v);
+    const payload = {
+      name: form.name.trim(), date: form.date, slot: clean(form.slot), pax: Number(form.pax) || 1, status: form.status,
+      email: clean(form.email), whatsapp: clean(form.whatsapp), package: clean(form.package), extras: clean(form.extras),
+      meeting: clean(form.meeting), pickup_note: clean(form.pickup_note), estimated_total: clean(form.estimated_total), admin_note: clean(form.admin_note),
+    };
+    setReservations((prev) => prev.map((r) => (r.id === form.id ? { ...r, ...payload } : r)));
+    setEditing(null);
+    if (supabase) {
+      supabase.from("reservations").update(payload).eq("id", form.id).then(({ error }) => {
+        if (error) {
+          console.error("Gagal menyimpan reservasi", error);
+          window.alert("Gagal menyimpan perubahan reservasi: " + error.message + ". Muat ulang halaman lalu coba lagi.");
+        }
+      });
+    }
+  };
+
+  const detailRow = (label, value) => (
+    <div className="flex gap-3">
+      <span className="text-[#6b6a72] w-28 shrink-0">{label}</span>
+      <span className="text-[#E2E8F0] break-words min-w-0">{value}</span>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl">
       <h2 className="text-lg font-semibold text-[#E2E8F0] mb-1 flex items-center gap-2">
         <Calendar className="w-4 h-4 text-[#C6A15B]" /> Manajemen Reservasi
       </h2>
-      <p className="text-xs text-[#9a99a1] mb-5">Klik status untuk mengganti Confirmed / Pending. Halaman ini otomatis update saat ada booking baru masuk.</p>
+      <p className="text-xs text-[#9a99a1] mb-5">Klik nama tamu untuk melihat detail booking. Klik status untuk mengganti Confirmed / Pending. Halaman ini otomatis update saat ada booking baru masuk.</p>
 
       {newAlert && (
         <div className="mb-4 bg-green-500/10 border border-green-500/30 text-green-300 rounded-lg px-4 py-3 text-sm flex items-center gap-2">
@@ -3616,25 +3664,135 @@ function ReservationsManager({ reservations, setReservations }) {
       )}
 
       <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
-        <div className="grid grid-cols-[1fr_0.9fr_0.6fr_0.5fr_0.8fr_0.4fr] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[560px]">
-          <span>Nama Tamu</span><span>Tanggal Kelas</span><span>Slot</span><span>Peserta</span><span>Status</span><span></span>
+        <div className="grid grid-cols-[1.2fr_0.9fr_0.6fr_0.5fr_0.8fr_0.6fr] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[620px]">
+          <span>Nama Tamu</span><span>Tanggal Kelas</span><span>Slot</span><span>Peserta</span><span>Status</span><span className="text-right">Aksi</span>
         </div>
-        {reservations.map((r) => (
-          <div key={r.id} className="grid grid-cols-[1fr_0.9fr_0.6fr_0.5fr_0.8fr_0.4fr] gap-2 px-4 py-3 border-t border-[#2a2930] items-center text-sm min-w-[560px]">
-            <span className="text-[#E2E8F0]">{r.name}</span>
-            <span className="text-[#9a99a1]">{r.date}</span>
-            <span className="text-[#9a99a1]">{r.slot || "-"}</span>
-            <span className="text-[#9a99a1] flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {r.pax}</span>
-            <button onClick={() => cycleStatus(r.id)} className={"text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 w-fit transition-colors " + (r.status === "Confirmed" ? "bg-green-500/10 text-green-400 border border-green-500/30" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/30")}>
-              {r.status === "Confirmed" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
-              {r.status}
-            </button>
-            <button onClick={() => removeReservation(r.id)} className="text-[#6b6a72] hover:text-red-400 justify-self-end">
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ))}
+        {reservations.map((r) => {
+          const isOpen = expandedId === r.id;
+          const guestDigits = (r.whatsapp || "").replace(/[^0-9]/g, "");
+          const hasDetails = !!(r.email || r.whatsapp || r.package || r.meeting || r.estimated_total || r.admin_note);
+          return (
+            <div key={r.id} className="border-t border-[#2a2930] min-w-[620px]">
+              <div className="grid grid-cols-[1.2fr_0.9fr_0.6fr_0.5fr_0.8fr_0.6fr] gap-2 px-4 py-3 items-center text-sm">
+                <button onClick={() => setExpandedId(isOpen ? null : r.id)} className="text-left text-[#E2E8F0] hover:text-[#C6A15B] inline-flex items-center gap-1.5">
+                  {isOpen ? <ChevronUp className="w-3.5 h-3.5 shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 shrink-0" />}
+                  <span className="truncate">{r.name}</span>
+                </button>
+                <span className="text-[#9a99a1]">{r.date}</span>
+                <span className="text-[#9a99a1]">{r.slot || "-"}</span>
+                <span className="text-[#9a99a1] flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {r.pax}</span>
+                <button onClick={() => cycleStatus(r.id)} className={"text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1 w-fit transition-colors " + (r.status === "Confirmed" ? "bg-green-500/10 text-green-400 border border-green-500/30" : "bg-yellow-500/10 text-yellow-400 border border-yellow-500/30")}>
+                  {r.status === "Confirmed" ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                  {r.status}
+                </button>
+                <div className="flex items-center gap-3 justify-self-end">
+                  <button onClick={() => setEditing(r)} title="Edit" className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
+                  <button onClick={() => removeReservation(r)} title="Hapus" className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+              {isOpen && (
+                <div className="px-4 pb-4">
+                  <div className="bg-[#16151A] border border-[#2a2930] rounded-lg p-4 space-y-2 text-sm">
+                    {!hasDetails && (
+                      <p className="text-xs text-yellow-400">Detail kontak tidak tersimpan untuk booking ini (dibuat sebelum 27 Sep 2026). Klik ikon Edit untuk mengisinya manual.</p>
+                    )}
+                    {r.email && detailRow("Email", <a href={"mailto:" + r.email} className="text-[#C6A15B] hover:underline">{r.email}</a>)}
+                    {r.whatsapp && detailRow("WhatsApp", (
+                      <span className="inline-flex flex-wrap items-center gap-2">
+                        {r.whatsapp}
+                        {guestDigits && (
+                          <a
+                            href={"https://wa.me/" + guestDigits + "?text=" + encodeURIComponent("Hi " + r.name + ", this is Family Silver Class Bali about your booking on " + r.date + (r.slot ? " at " + r.slot : "") + ".")}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#25D366] border border-[#25D366]/40 rounded-full px-2.5 py-0.5 hover:bg-[#25D366]/10"
+                          >
+                            <MessageSquare className="w-3 h-3" /> Chat tamu
+                          </a>
+                        )}
+                      </span>
+                    ))}
+                    {r.package && detailRow("Paket", r.package)}
+                    {r.extras && detailRow("Add-on", r.extras)}
+                    {r.meeting && detailRow("Pertemuan", r.meeting)}
+                    {r.pickup_note && detailRow("Lokasi jemput", r.pickup_note)}
+                    {r.estimated_total && detailRow("Estimasi total", r.estimated_total)}
+                    {r.admin_note && detailRow("Catatan admin", r.admin_note)}
+                    {r.created_at && detailRow("Dipesan", new Date(r.created_at).toLocaleString("id-ID", { timeZone: "Asia/Makassar", dateStyle: "medium", timeStyle: "short" }) + " WITA")}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
         {reservations.length === 0 && (<div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Belum ada reservasi.</div>)}
+      </div>
+
+      <ReservationEditModal reservation={editing} onClose={() => setEditing(null)} onSave={saveReservation} />
+    </div>
+  );
+}
+
+function ReservationEditModal({ reservation, onClose, onSave }) {
+  const [form, setForm] = useState(null);
+
+  useEffect(() => { setForm(reservation ? { ...reservation } : null); }, [reservation]);
+
+  if (!reservation || !form) return null;
+
+  const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
+  const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const textField = (k, label, placeholder) => (
+    <div>
+      <label className="text-xs text-[#9a99a1] mb-1 block">{label}</label>
+      <input value={form[k] || ""} onChange={(e) => update(k, e.target.value)} placeholder={placeholder} className={inputCls} />
+    </div>
+  );
+  const canSave = String(form.name || "").trim() && form.date;
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-center justify-between rounded-t-2xl">
+          <h3 className="text-lg font-semibold text-[#E2E8F0]">Edit Reservasi</h3>
+          <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid sm:grid-cols-2 gap-3">
+            {textField("name", "Nama Tamu *", "Nama sesuai booking")}
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Tanggal Kelas *</label>
+              <input type="date" value={form.date || ""} onChange={(e) => update("date", e.target.value)} className={inputCls} />
+            </div>
+            {textField("slot", "Slot", "cth. 13:00")}
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Peserta</label>
+              <input type="number" min="1" value={form.pax} onChange={(e) => update("pax", e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="text-xs text-[#9a99a1] mb-1 block">Status</label>
+              <select value={form.status} onChange={(e) => update("status", e.target.value)} className={inputCls}>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+              </select>
+            </div>
+            {textField("estimated_total", "Estimasi Total", "cth. Rp 1.300.000")}
+            {textField("email", "Email", "email@tamu.com")}
+            {textField("whatsapp", "WhatsApp Tamu", "cth. +61 412 345 678")}
+          </div>
+          {textField("package", "Paket", "cth. Silver Ring (2 pax, +0g extra silver)")}
+          {textField("extras", "Add-on", "cth. Gem Stone")}
+          <div className="grid sm:grid-cols-2 gap-3">
+            {textField("meeting", "Pertemuan", "Di studio / Penjemputan hotel")}
+            {textField("pickup_note", "Lokasi Jemput", "Nama hotel atau link Maps")}
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Catatan Admin</label>
+            <textarea value={form.admin_note || ""} onChange={(e) => update("admin_note", e.target.value)} rows={3} className={inputCls + " resize-none"} placeholder="Catatan internal, tidak terlihat tamu" />
+          </div>
+          <GlowButton className="w-full" onClick={() => { if (canSave) onSave(form); }}><Check className="w-4 h-4" /> Simpan Reservasi</GlowButton>
+        </div>
       </div>
     </div>
   );

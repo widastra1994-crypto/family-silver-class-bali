@@ -116,6 +116,18 @@ create table if not exists reservations (
 
 alter table reservations add column if not exists slot text;
 
+-- Booking details from the public form (contact + package), so the admin can
+-- follow up even if the guest's WhatsApp message never arrives. Anonymous
+-- visitors can only INSERT these; only a logged-in admin can read them (RLS).
+alter table reservations add column if not exists email text;
+alter table reservations add column if not exists whatsapp text;
+alter table reservations add column if not exists package text;
+alter table reservations add column if not exists extras text;
+alter table reservations add column if not exists meeting text;
+alter table reservations add column if not exists pickup_note text;
+alter table reservations add column if not exists estimated_total text;
+alter table reservations add column if not exists admin_note text;
+
 alter table reservations enable row level security;
 
 grant select, insert, update, delete on reservations to anon, authenticated;
