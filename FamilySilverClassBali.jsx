@@ -4726,8 +4726,53 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
     const instrP = txs.reduce((s, t) => s + txVendorTotal(t), 0);
     const refundP = txs.reduce((s, t) => s + (Number(t.refund) || 0), 0);
     const revenueP = txs.reduce((s, t) => s + txRevenue(t), 0);
-    return { key: p.key, count: txs.length, cost: costP, instr: instrP, refund: refundP, revenue: revenueP, ops: opsP, net: revenueP - opsP };
+    return { key: p.key, test: p.test, count: txs.length, cost: costP, instr: instrP, refund: refundP, revenue: revenueP, ops: opsP, net: revenueP - opsP };
   });
+
+  // Drill-down: clicking a month / agent / instructor row lists the Rekapan behind it.
+  const [drill, setDrill] = useState(null);
+  const byDate = (a, b) => String(a.date).localeCompare(String(b.date));
+  const drillData = (() => {
+    if (!drill) return null;
+    const { kind, row } = drill;
+    if (kind === "app") {
+      return {
+        title: row.name, subtitle: "Periode " + row.period,
+        txs: transactions.filter((t) => t.appId === row.appId && row.periodTest(new Date(t.date))).sort(byDate),
+        ops: null, vendorId: null, onPdf: () => handleDownloadAppRowPdf(row),
+      };
+    }
+    if (kind === "vendor") {
+      return {
+        title: row.name, subtitle: "Periode " + row.period,
+        txs: transactions.filter((t) => row.periodTest(new Date(t.date)) && (t.instructorPayments || []).some((p) => p.vendorId === row.vendorId)).sort(byDate),
+        ops: null, vendorId: row.vendorId, onPdf: () => handleDownloadVendorRowPdf(row),
+      };
+    }
+    const txs = transactions.filter((t) => row.test(new Date(t.date))).sort(byDate);
+    const opsList = operational.filter((o) => row.test(new Date(o.date))).sort(byDate);
+    return {
+      title: (viewMode === "bulanan" ? row.key + " " + reportYear : "Tahun " + row.key), subtitle: "Semua rekapan & operasional",
+      txs, ops: opsList, vendorId: null,
+      onPdf: () => {
+        const cols = [
+          { label: "Tanggal", value: (r) => r.date },
+          { label: "Tamu", value: (r) => r.guestName },
+          { label: "Aktivitas", value: (r) => r.activityName },
+          { label: "Pax", value: (r) => r.pax },
+          { label: "Harga Pokok", value: (r) => idr(txGrossCost(r)) },
+          { label: "Komisi", value: (r) => idr(txVendorTotal(r)) },
+          { label: "Pendapatan", value: (r) => idr(txRevenue(r)) },
+        ];
+        openPdfWindow(buildPdfHtml("Rekapan " + (viewMode === "bulanan" ? row.key + " " + reportYear : row.key) + " - Family Silver Class Bali", "Pendapatan " + idr(row.revenue) + " &middot; Operasional " + idr(row.ops) + " &middot; Laba Bersih " + idr(row.net), cols, txs));
+      },
+    };
+  })();
+  const drillLink = (label, onClick) => (
+    <button onClick={onClick} className="text-left text-[#E2E8F0] hover:text-[#C6A15B] underline decoration-dotted decoration-[#6b6a72] underline-offset-4 hover:decoration-[#C6A15B]" title="Lihat semua rekapan">
+      {label}
+    </button>
+  );
 
   // Iterate every appId/vendorId actually referenced in transactions (not just
   // the current Master Data list) so a deleted instructor/agent's historical
@@ -4936,7 +4981,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
             </div>
             {labaRugiRows.map((r, i) => (
               <div key={i} className="grid grid-cols-8 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[820px]">
-                <span className="text-[#E2E8F0]">{r.key}</span>
+                {r.count > 0 || r.ops > 0 ? drillLink(r.key, () => setDrill({ kind: "period", row: r })) : <span className="text-[#E2E8F0]">{r.key}</span>}
                 <span className="text-[#9a99a1]">{r.count}</span>
                 <span className="text-[#9a99a1]">{idr(r.cost)}</span>
                 <span className="text-[#9a99a1]">{idr(r.instr)}</span>
@@ -4952,7 +4997,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
             {labaRugiRows.filter((r) => r.count > 0).map((r, i) => (
               <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-[#E2E8F0] font-semibold">{r.key}</span>
+                  <span className="font-semibold">{drillLink(r.key, () => setDrill({ kind: "period", row: r }))}</span>
                   <span className="text-xs text-[#6b6a72]">{r.count} trip</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
@@ -4976,7 +5021,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
             {appBreakdown.map((a, i) => (
               <div key={i} className="grid grid-cols-5 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[620px] items-center">
                 <span className="text-[#9a99a1]">{a.period}</span>
-                <span className="text-[#E2E8F0]">{a.name}</span>
+                {drillLink(a.name, () => setDrill({ kind: "app", row: a }))}
                 <span className="text-[#9a99a1]">{a.count}</span>
                 <span className="text-green-400 font-semibold">{idr(a.revenue)}</span>
                 <button onClick={() => handleDownloadAppRowPdf(a)} className="justify-self-end text-[#9a99a1] hover:text-[#C6A15B]" title={"Unduh PDF " + a.name + " - " + a.period}><FileText className="w-4 h-4" /></button>
@@ -4990,7 +5035,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
               <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[#E2E8F0] font-semibold">{a.name}</p>
+                    <p className="font-semibold">{drillLink(a.name, () => setDrill({ kind: "app", row: a }))}</p>
                     <p className="text-xs text-[#6b6a72]">{a.period} · {a.count} trip</p>
                   </div>
                   <span className="text-green-400 font-semibold">{idr(a.revenue)}</span>
@@ -5013,7 +5058,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
             {vendorBreakdown.map((v, i) => (
               <div key={i} className="grid grid-cols-6 gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[660px] items-center">
                 <span className="text-[#9a99a1]">{v.period}</span>
-                <span className="text-[#E2E8F0]">{v.name}</span>
+                {drillLink(v.name, () => setDrill({ kind: "vendor", row: v }))}
                 <span className="text-[#9a99a1]">{v.count}</span>
                 <span className="text-[#9a99a1]">{idr(v.total)}</span>
                 <span className={"font-semibold " + (v.unpaid > 0 ? "text-yellow-400" : "text-[#6b6a72]")}>{v.unpaid > 0 ? idr(v.unpaid) : "Lunas"}</span>
@@ -5027,7 +5072,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
             {vendorBreakdown.map((v, i) => (
               <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[#E2E8F0] font-semibold">{v.name}</span>
+                  <span className="font-semibold">{drillLink(v.name, () => setDrill({ kind: "vendor", row: v }))}</span>
                   <span className="text-xs text-[#6b6a72]">{v.period} · {v.count} transaksi</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -5070,6 +5115,122 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
           </div>
         </>
       )}
+
+      {drillData && <LaporanDrillModal data={drillData} apps={apps} onClose={() => setDrill(null)} />}
+    </div>
+  );
+}
+
+function LaporanDrillModal({ data, apps, onClose }) {
+  const appName = (id) => (apps.find((a) => a.id === id) || { name: "(Aplikasi dihapus)" }).name;
+  // For an instructor drill-down, show only that instructor's share of each Rekapan.
+  const commissionOf = (t) => (data.vendorId
+    ? (t.instructorPayments || []).filter((p) => p.vendorId === data.vendorId).reduce((s, p) => s + (Number(p.amount) || 0), 0)
+    : txVendorTotal(t));
+  const unpaidOf = (t) => (t.instructorPayments || []).some((p) => (!data.vendorId || p.vendorId === data.vendorId) && !p.paid);
+  const totals = data.txs.reduce((s, t) => ({
+    pax: s.pax + (Number(t.pax) || 0),
+    cost: s.cost + txGrossCost(t),
+    commission: s.commission + commissionOf(t),
+    revenue: s.revenue + txRevenue(t),
+  }), { pax: 0, cost: 0, commission: 0, revenue: 0 });
+  const opsTotal = (data.ops || []).reduce((s, o) => s + (Number(o.totalAmount) || 0), 0);
+  const cols = "grid-cols-[0.8fr_1.2fr_1fr_1.4fr_0.4fr_1fr_1fr_1fr]";
+
+  return (
+    <div className="fixed inset-0 z-[65] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-[#1c1b21] border border-[#2a2930] rounded-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky top-0 z-10 bg-[#1c1b21] border-b border-[#2a2930] p-5 flex items-start justify-between gap-4 rounded-t-2xl">
+          <div>
+            <h3 className="text-lg font-semibold text-[#E2E8F0]">{data.title}</h3>
+            <p className="text-xs text-[#9a99a1]">{data.subtitle} · {data.txs.length} rekapan · {totals.pax} pax</p>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button onClick={data.onPdf} className="inline-flex items-center gap-1.5 text-xs text-[#C6A15B] border border-[#C6A15B]/30 rounded-full px-3 py-1.5 hover:bg-[#C6A15B]/10"><FileText className="w-3.5 h-3.5" /> Unduh PDF</button>
+            <button onClick={onClose} className="text-[#9a99a1] hover:text-[#E2E8F0]"><X className="w-5 h-5" /></button>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-6">
+          <div className="hidden md:block bg-[#16151A] border border-[#2a2930] rounded-xl overflow-hidden">
+            <div className={"grid " + cols + " gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72]"}>
+              <span>Tanggal</span><span>Tamu</span><span>Aplikasi/Agent</span><span>Aktivitas</span><span>Pax</span><span>Harga Pokok</span><span>{data.vendorId ? "Komisi Instruktur" : "Komisi"}</span><span className="text-right">Pendapatan</span>
+            </div>
+            {data.txs.map((t) => (
+              <div key={t.id} className={"grid " + cols + " gap-2 px-4 py-2.5 border-t border-[#2a2930] text-sm items-center"}>
+                <span className="text-[#9a99a1]">{t.date}</span>
+                <span className="text-[#E2E8F0] truncate" title={t.guestName}>{t.guestName}</span>
+                <span className="text-[#9a99a1] truncate">{appName(t.appId)}</span>
+                <span className="text-[#9a99a1] min-w-0">
+                  <span className="block truncate" title={t.activityName}>{t.activityName}</span>
+                  {(t.addOns || []).length > 0 && <span className="block text-[10px] text-[#C6A15B] truncate">+ {(t.addOns || []).map((a) => a.name).join(", ")}</span>}
+                </span>
+                <span className="text-[#9a99a1]">{t.pax}</span>
+                <span className="text-[#9a99a1]">{idr(txGrossCost(t))}</span>
+                <span className="text-[#9a99a1]">
+                  {idr(commissionOf(t))}
+                  {unpaidOf(t) && <span className="ml-1 text-[10px] text-yellow-400">belum dibayar</span>}
+                </span>
+                <span className="text-right text-green-400 font-semibold">{idr(txRevenue(t))}</span>
+              </div>
+            ))}
+            <div className={"grid " + cols + " gap-2 px-4 py-3 border-t border-[#C6A15B]/30 bg-[#1f1e24] text-sm font-semibold"}>
+              <span className="text-[#E2E8F0] col-span-4">Total</span>
+              <span className="text-[#E2E8F0]">{totals.pax}</span>
+              <span className="text-[#E2E8F0]">{idr(totals.cost)}</span>
+              <span className="text-[#E2E8F0]">{idr(totals.commission)}</span>
+              <span className="text-right text-green-400">{idr(totals.revenue)}</span>
+            </div>
+          </div>
+
+          <div className="md:hidden space-y-2">
+            {data.txs.map((t) => (
+              <div key={t.id} className="bg-[#16151A] border border-[#2a2930] rounded-xl p-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[#E2E8F0] font-semibold truncate">{t.guestName}</p>
+                    <p className="text-xs text-[#6b6a72]">{t.date} · {appName(t.appId)} · {t.pax} pax</p>
+                    <p className="text-xs text-[#9a99a1] truncate">{t.activityName}</p>
+                  </div>
+                  <span className="text-green-400 font-semibold whitespace-nowrap">{idr(txRevenue(t))}</span>
+                </div>
+                <div className="flex justify-between text-xs text-[#9a99a1] mt-2 pt-2 border-t border-[#2a2930]">
+                  <span>Pokok {idr(txGrossCost(t))}</span>
+                  <span>Komisi {idr(commissionOf(t))}{unpaidOf(t) ? " (belum dibayar)" : ""}</span>
+                </div>
+              </div>
+            ))}
+            <div className="bg-[#1f1e24] border border-[#C6A15B]/30 rounded-xl p-3 text-sm font-semibold flex justify-between">
+              <span className="text-[#E2E8F0]">Total ({totals.pax} pax)</span>
+              <span className="text-green-400">{idr(totals.revenue)}</span>
+            </div>
+          </div>
+
+          {data.txs.length === 0 && <p className="text-sm text-[#6b6a72] text-center">Tidak ada rekapan pada periode ini.</p>}
+
+          {data.ops && (
+            <div>
+              <h4 className="text-sm font-semibold text-[#E2E8F0] mb-2">Operasional</h4>
+              <div className="bg-[#16151A] border border-[#2a2930] rounded-xl overflow-hidden">
+                {data.ops.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-[#2a2930] first:border-t-0 text-sm">
+                    <span className="text-[#9a99a1] w-24 shrink-0">{o.date}</span>
+                    <span className="text-[#E2E8F0] flex-1 min-w-0 truncate">{o.need}{o.note ? <span className="text-[#6b6a72]"> · {o.note}</span> : null}</span>
+                    <span className="text-red-400 whitespace-nowrap">{idr(o.totalAmount)}</span>
+                  </div>
+                ))}
+                {data.ops.length === 0 && <div className="px-4 py-4 text-sm text-[#6b6a72]">Tidak ada biaya operasional pada periode ini.</div>}
+              </div>
+              <div className="mt-3 bg-[#1f1e24] border border-[#C6A15B]/30 rounded-xl p-4 text-sm space-y-1">
+                <div className="flex justify-between text-[#9a99a1]"><span>Pendapatan</span><span>{idr(totals.revenue)}</span></div>
+                <div className="flex justify-between text-[#9a99a1]"><span>− Operasional</span><span>{idr(opsTotal)}</span></div>
+                <div className="flex justify-between font-bold pt-1 border-t border-[#2a2930]"><span className="text-[#E2E8F0]">Laba Bersih</span><span className={totals.revenue - opsTotal >= 0 ? "text-green-400" : "text-red-400"}>{idr(totals.revenue - opsTotal)}</span></div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
