@@ -3893,6 +3893,23 @@ function BlogManager({ posts, setPosts }) {
 function idr(n) {
   return "Rp " + Math.round(Number(n) || 0).toLocaleString("id-ID");
 }
+const PAYMENT_METHODS = [
+  { id: "cash", label: "Cash", cls: "border-green-500/40 text-green-400" },
+  { id: "kartu_kredit", label: "Kartu Kredit", cls: "border-sky-500/40 text-sky-400" },
+  { id: "aplikasi", label: "Aplikasi", cls: "border-[#C6A15B]/50 text-[#C6A15B]" },
+  { id: "agent", label: "Agent", cls: "border-purple-500/40 text-purple-300" },
+];
+function paymentLabel(id) {
+  return (PAYMENT_METHODS.find((m) => m.id === id) || { label: "Belum diisi" }).label;
+}
+function PaymentBadge({ method }) {
+  const m = PAYMENT_METHODS.find((x) => x.id === method);
+  return (
+    <span className={"inline-block text-[10px] leading-none px-1.5 py-1 rounded border whitespace-nowrap " + (m ? m.cls : "border-[#3a3940] text-[#6b6a72]")}>
+      {m ? m.label : "Belum diisi"}
+    </span>
+  );
+}
 const DEFAULT_KOMISI_PER_PAX = 100000;
 function vendorRatePerPax(vendor) {
   if (!vendor || vendor.ratePerPax === undefined || vendor.ratePerPax === null || vendor.ratePerPax === "") return DEFAULT_KOMISI_PER_PAX;
@@ -3958,17 +3975,22 @@ function PeriodFilterBar({ period, setPeriod, from, setFrom, to, setTo }) {
 
 function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, initial }) {
   const autoAmount = (pax, vendorId) => (Number(pax) || 0) * vendorRatePerPax(vendors.find((v) => v.id === vendorId));
+  const appDefaultPayment = (appId) => (apps.find((a) => a.id === appId) || {}).defaultPayment || "";
   const makeBlank = () => ({
     date: new Date().toISOString().slice(0, 10), appId: apps[0] ? apps[0].id : "", guestName: "", phone: "", email: "", pax: 1, activityName: "", costPrice: "", refund: "", note: "",
+    paymentMethod: apps[0] ? appDefaultPayment(apps[0].id) : "", paymentAuto: true,
     instructorPayments: vendors[0] ? [{ id: "p-" + Date.now(), vendorId: vendors[0].id, amount: autoAmount(1, vendors[0].id), paid: false, note: "", auto: true }] : [],
     addOns: [],
   });
-  // `auto` is UI-only (stripped on save). An existing payment counts as automatic
-  // only if it still equals pax × the instructor's current rate, so custom
-  // amounts and amounts from an older rate are never silently recalculated.
+  // `auto` / `paymentAuto` are UI-only (stripped on save). An existing payment
+  // counts as automatic only if it still equals pax × the instructor's current
+  // rate, so custom amounts and amounts from an older rate are never silently
+  // recalculated. A chosen payment method is likewise never overwritten.
   const prepareExisting = (tx) => ({
     addOns: [],
     ...tx,
+    paymentMethod: tx.paymentMethod || appDefaultPayment(tx.appId),
+    paymentAuto: !tx.paymentMethod,
     instructorPayments: (tx.instructorPayments || []).map((p) => ({ ...p, auto: Number(p.amount) === autoAmount(tx.pax, p.vendorId) })),
   });
   const [form, setForm] = useState(() => (initial ? prepareExisting(initial) : makeBlank()));
@@ -3980,6 +4002,8 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
 
   const inputCls = "w-full bg-[#16151A] border border-[#2a2930] focus:border-[#C6A15B] outline-none rounded-lg px-3 py-2.5 text-sm text-[#E2E8F0] transition-colors";
   const update = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const updateApp = (v) => setForm((f) => ({ ...f, appId: v, paymentMethod: f.paymentAuto ? appDefaultPayment(v) : f.paymentMethod }));
+  const choosePayment = (m) => setForm((f) => ({ ...f, paymentMethod: m, paymentAuto: false }));
   const updatePax = (v) => setForm((f) => ({ ...f, pax: v, instructorPayments: f.instructorPayments.map((p) => (p.auto ? { ...p, amount: autoAmount(v, p.vendorId) } : p)) }));
   const addPayment = () => setForm((f) => {
     const vendorId = vendors[0] ? vendors[0].id : "";
@@ -4012,8 +4036,10 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
     if (!form.guestName.trim() || !form.activityName.trim() || !form.costPrice) return;
     savingRef.current = true;
     const pax = Number(form.pax) || 1;
+    const { paymentAuto, ...formData } = form;
     onSave({
-      ...form,
+      ...formData,
+      paymentMethod: form.paymentMethod || null,
       id: form.id || ("TX-" + Date.now()),
       costPrice: Number(form.costPrice) || 0,
       refund: Number(form.refund) || 0,
@@ -4036,7 +4062,7 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
           <div className="grid sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-[#9a99a1] mb-1 block">Aplikasi *</label>
-              <select value={form.appId} onChange={(e) => update("appId", e.target.value)} className={inputCls}>
+              <select value={form.appId} onChange={(e) => updateApp(e.target.value)} className={inputCls}>
                 {apps.map((a) => (<option key={a.id} value={a.id}>{a.name}</option>))}
               </select>
             </div>
@@ -4048,6 +4074,26 @@ function AccountingTransactionModal({ open, onClose, onSave, apps, vendors, init
               <label className="text-xs text-[#9a99a1] mb-1 block">Jumlah Pax *</label>
               <input type="number" min="1" value={form.pax} onChange={(e) => updatePax(e.target.value)} className={inputCls} />
             </div>
+          </div>
+          <div>
+            <label className="text-xs text-[#9a99a1] mb-1 block">Metode Pembayaran</label>
+            <div className="flex flex-wrap gap-2">
+              {PAYMENT_METHODS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => choosePayment(m.id)}
+                  className={"text-sm px-4 py-2 rounded-full border transition-colors " + (form.paymentMethod === m.id ? "bg-[#C6A15B] text-[#16151A] border-[#C6A15B] font-semibold" : "border-[#3a3940] text-[#9a99a1] hover:border-[#C6A15B] hover:text-[#E2E8F0]")}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] mt-1.5 text-[#6b6a72]">
+              {!form.paymentMethod
+                ? <span className="text-yellow-400">Belum dipilih. Atur pembayaran default per aplikasi di Master Data agar terisi otomatis.</span>
+                : form.paymentAuto ? "Otomatis dari pembayaran default aplikasi (Master Data). Klik pilihan lain kalau berbeda." : null}
+            </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
@@ -4250,7 +4296,10 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
             {transactions.map((t) => (
               <tr key={t.id} className="border-t border-[#2a2930]">
                 <td className="px-4 py-3 text-[#9a99a1] whitespace-nowrap">{t.date}</td>
-                <td className="px-4 py-3 text-[#9a99a1]">{appName(t.appId)}</td>
+                <td className="px-4 py-3 text-[#9a99a1]">
+                  <div>{appName(t.appId)}</div>
+                  <div className="mt-1"><PaymentBadge method={t.paymentMethod} /></div>
+                </td>
                 <td className="px-4 py-3">
                   <div className="text-[#E2E8F0]">{t.guestName}</div>
                   <div className="text-xs text-[#6b6a72]">{t.activityName}</div>
@@ -4297,7 +4346,7 @@ function AccountingRekapanTab({ transactions, setTransactions, apps, vendors, op
             </div>
             <div className="flex items-center justify-between text-xs text-[#6b6a72] mb-3">
               <span>{t.date}</span>
-              <span>{appName(t.appId)}</span>
+              <span className="inline-flex items-center gap-2">{appName(t.appId)} <PaymentBadge method={t.paymentMethod} /></span>
             </div>
             <div className="grid grid-cols-3 gap-2 text-center border-t border-[#2a2930] pt-3">
               <div>
@@ -4494,6 +4543,7 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
     setApps(apps.map((a) => (a.id === editingAppId ? { ...a, name: appEditDraft.trim() } : a)));
     setEditingAppId(null);
   };
+  const setAppDefaultPayment = (id, method) => setApps(apps.map((a) => (a.id === id ? { ...a, defaultPayment: method || null } : a)));
 
   const vendorStats = (id) => {
     let total = 0, unpaid = 0;
@@ -4611,7 +4661,8 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
       </div>
 
       <div>
-        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-3">Aplikasi / Agent</h3>
+        <h3 className="text-sm font-semibold text-[#E2E8F0] mb-1">Aplikasi / Agent</h3>
+        <p className="text-xs text-[#9a99a1] mb-3">Pilih pembayaran default (Cash, Kartu Kredit, Aplikasi, Agent) supaya metode pembayaran di Rekapan terisi otomatis saat aplikasi ini dipilih.</p>
         <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden mb-4">
           {apps.map((a) => {
             const isEditing = editingAppId === a.id;
@@ -4627,8 +4678,17 @@ function AccountingMasterDataTab({ vendors, setVendors, apps, setApps, transacti
                   </>
                 ) : (
                   <>
-                    <span className="text-[#E2E8F0]">{a.name}</span>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[#E2E8F0] min-w-0 truncate">{a.name}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <select
+                        value={a.defaultPayment || ""}
+                        onChange={(e) => setAppDefaultPayment(a.id, e.target.value)}
+                        title="Pembayaran default untuk rekapan baru dari aplikasi ini"
+                        className="bg-[#16151A] border border-[#2a2930] text-xs text-[#E2E8F0] rounded-lg px-2 py-1.5 outline-none focus:border-[#C6A15B]"
+                      >
+                        <option value="">Pembayaran default: –</option>
+                        {PAYMENT_METHODS.map((m) => (<option key={m.id} value={m.id}>Default: {m.label}</option>))}
+                      </select>
                       <button onClick={() => startEditApp(a)} className="text-[#9a99a1] hover:text-[#C6A15B]"><Edit3 className="w-4 h-4" /></button>
                       <button onClick={() => removeApp(a.id)} className="text-[#6b6a72] hover:text-red-400"><Trash2 className="w-4 h-4" /></button>
                     </div>
@@ -4709,6 +4769,7 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
   const tabs = [
     { id: "laba_rugi", label: "Laba Rugi" },
     { id: "per_aplikasi", label: "Per Aplikasi/Agent" },
+    { id: "per_pembayaran", label: "Per Pembayaran" },
     { id: "per_vendor", label: "Per Instruktur" },
     { id: "pengembalian", label: "Pengembalian Dana" },
   ];
@@ -4740,6 +4801,13 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
         title: row.name, subtitle: "Periode " + row.period,
         txs: transactions.filter((t) => t.appId === row.appId && row.periodTest(new Date(t.date))).sort(byDate),
         ops: null, vendorId: null, onPdf: () => handleDownloadAppRowPdf(row),
+      };
+    }
+    if (kind === "payment") {
+      return {
+        title: "Pembayaran: " + row.name, subtitle: "Periode " + row.period,
+        txs: transactions.filter((t) => (PAYMENT_METHODS.some((m) => m.id === t.paymentMethod) ? t.paymentMethod : null) === row.method && row.periodTest(new Date(t.date))).sort(byDate),
+        ops: null, vendorId: null, onPdf: () => handleDownloadPaymentRowPdf(row),
       };
     }
     if (kind === "vendor") {
@@ -4789,6 +4857,22 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
     });
   });
 
+  // Includes a "Belum diisi" group so the rows always add up to the period totals.
+  const paymentBreakdown = [];
+  buildPeriods(viewMode).forEach((p) => {
+    [...PAYMENT_METHODS.map((m) => m.id), null].forEach((method) => {
+      const txs = transactions.filter((t) => (PAYMENT_METHODS.some((m) => m.id === t.paymentMethod) ? t.paymentMethod : null) === method && p.test(new Date(t.date)));
+      if (txs.length > 0) {
+        paymentBreakdown.push({
+          period: p.key, method, name: paymentLabel(method), periodTest: p.test, count: txs.length,
+          pax: txs.reduce((s, t) => s + (Number(t.pax) || 0), 0),
+          cost: txs.reduce((s, t) => s + txGrossCost(t), 0),
+          revenue: txs.reduce((s, t) => s + txRevenue(t), 0),
+        });
+      }
+    });
+  });
+
   const vendorBreakdown = [];
   buildPeriods(viewMode).forEach((p) => {
     const vendorNameById = new Map(vendors.map((v) => [v.id, v.name]));
@@ -4832,6 +4916,16 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
         { label: "Pendapatan", value: (r) => idr(r.revenue) },
       ];
       openPdfWindow(buildPdfHtml("Laporan Per Aplikasi/Agent - Family Silver Class Bali", (viewMode === "bulanan" ? "Laporan Bulanan" : "Laporan Tahunan") + " &middot; " + scopeLabel, cols, appBreakdown));
+    } else if (tab === "per_pembayaran") {
+      const cols = [
+        { label: viewMode === "bulanan" ? "Bulan" : "Tahun", value: (r) => r.period },
+        { label: "Metode Pembayaran", value: (r) => r.name },
+        { label: "Trip", value: (r) => r.count },
+        { label: "Pax", value: (r) => r.pax },
+        { label: "Harga Pokok", value: (r) => idr(r.cost) },
+        { label: "Pendapatan", value: (r) => idr(r.revenue) },
+      ];
+      openPdfWindow(buildPdfHtml("Laporan Per Metode Pembayaran - Family Silver Class Bali", (viewMode === "bulanan" ? "Laporan Bulanan" : "Laporan Tahunan") + " &middot; " + scopeLabel, cols, paymentBreakdown));
     } else if (tab === "per_vendor") {
       const cols = [
         { label: viewMode === "bulanan" ? "Bulan" : "Tahun", value: (r) => r.period },
@@ -4885,6 +4979,23 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
     ];
     const title = "Laporan Komisi Instruktur - " + row.name + " - Family Silver Class Bali";
     const subtitle = "Periode: " + row.period + " &middot; Total " + idr(row.total) + (row.unpaid > 0 ? " &middot; Belum Dibayar " + idr(row.unpaid) : "");
+    openPdfWindow(buildPdfHtml(title, subtitle, cols, details));
+  };
+
+  const handleDownloadPaymentRowPdf = (row) => {
+    const details = transactions.filter((t) => (PAYMENT_METHODS.some((m) => m.id === t.paymentMethod) ? t.paymentMethod : null) === row.method && row.periodTest(new Date(t.date))).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    const appNameById = new Map(apps.map((a) => [a.id, a.name]));
+    const cols = [
+      { label: "Tanggal", value: (r) => r.date },
+      { label: "Tamu", value: (r) => r.guestName },
+      { label: "Aplikasi/Agent", value: (r) => appNameById.get(r.appId) || "(Aplikasi dihapus)" },
+      { label: "Aktivitas", value: (r) => r.activityName },
+      { label: "Pax", value: (r) => r.pax },
+      { label: "Harga Pokok", value: (r) => idr(txGrossCost(r)) },
+      { label: "Pendapatan", value: (r) => idr(txRevenue(r)) },
+    ];
+    const title = "Laporan Pembayaran " + row.name + " - Family Silver Class Bali";
+    const subtitle = "Periode: " + row.period + " &middot; Harga Pokok " + idr(row.cost) + " &middot; Pendapatan " + idr(row.revenue);
     openPdfWindow(buildPdfHtml(title, subtitle, cols, details));
   };
 
@@ -5049,6 +5160,54 @@ function AccountingLaporanTab({ transactions, operational, vendors, apps }) {
         </>
       )}
 
+      {tab === "per_pembayaran" && (
+        <>
+          <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
+            <div className="grid grid-cols-[0.7fr_1.3fr_0.6fr_0.6fr_1fr_1fr_0.4fr] gap-2 px-4 py-3 bg-[#1f1e24] text-[10px] uppercase tracking-wider text-[#6b6a72] min-w-[700px]">
+              <span>{viewMode === "bulanan" ? "Bulan" : "Tahun"}</span><span>Metode Pembayaran</span><span>Trip</span><span>Pax</span><span>Harga Pokok</span><span>Pendapatan</span><span></span>
+            </div>
+            {paymentBreakdown.map((r, i) => (
+              <div key={i} className="grid grid-cols-[0.7fr_1.3fr_0.6fr_0.6fr_1fr_1fr_0.4fr] gap-2 px-4 py-3 border-t border-[#2a2930] text-sm min-w-[700px] items-center">
+                <span className="text-[#9a99a1]">{r.period}</span>
+                <button onClick={() => setDrill({ kind: "payment", row: r })} title="Lihat semua rekapan" className="inline-flex items-center gap-2 w-fit group">
+                  <PaymentBadge method={r.method} />
+                  <span className="text-[11px] text-[#6b6a72] underline decoration-dotted underline-offset-4 group-hover:text-[#C6A15B]">lihat rekapan</span>
+                </button>
+                <span className="text-[#9a99a1]">{r.count}</span>
+                <span className="text-[#9a99a1]">{r.pax}</span>
+                <span className="text-[#9a99a1]">{idr(r.cost)}</span>
+                <span className="text-green-400 font-semibold">{idr(r.revenue)}</span>
+                <button onClick={() => handleDownloadPaymentRowPdf(r)} className="justify-self-end text-[#9a99a1] hover:text-[#C6A15B]" title={"Unduh PDF " + r.name + " - " + r.period}><FileText className="w-4 h-4" /></button>
+              </div>
+            ))}
+            {paymentBreakdown.length === 0 && <div className="px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+          </div>
+          <div className="sm:hidden space-y-3">
+            {paymentBreakdown.length === 0 && <div className="bg-[#1c1b21] border border-[#2a2930] rounded-xl px-4 py-8 text-center text-sm text-[#6b6a72]">Tidak ada data pada periode ini.</div>}
+            {paymentBreakdown.map((r, i) => (
+              <div key={i} className="bg-[#1c1b21] border border-[#2a2930] rounded-xl p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <button onClick={() => setDrill({ kind: "payment", row: r })} title="Lihat semua rekapan" className="inline-flex items-center gap-2 group">
+                      <PaymentBadge method={r.method} />
+                      <span className="text-[11px] text-[#6b6a72] underline decoration-dotted underline-offset-4 group-hover:text-[#C6A15B]">lihat rekapan</span>
+                    </button>
+                    <p className="text-xs text-[#6b6a72] mt-1">{r.period} · {r.count} trip · {r.pax} pax</p>
+                  </div>
+                  <span className="text-green-400 font-semibold">{idr(r.revenue)}</span>
+                </div>
+                <button onClick={() => handleDownloadPaymentRowPdf(r)} className="mt-3 w-full flex items-center justify-center gap-1.5 text-xs text-[#C6A15B] border border-[#C6A15B]/30 rounded-full py-1.5 hover:bg-[#C6A15B]/10">
+                  <FileText className="w-3.5 h-3.5" /> Unduh PDF {r.period}
+                </button>
+              </div>
+            ))}
+          </div>
+          {paymentBreakdown.some((r) => r.method === null) && (
+            <p className="text-xs text-yellow-400 mt-3">"Belum diisi" = rekapan yang belum punya metode pembayaran. Isi lewat Edit Rekapan, atau atur pembayaran default per aplikasi di Master Data untuk rekapan baru.</p>
+          )}
+        </>
+      )}
+
       {tab === "per_vendor" && (
         <>
           <div className="hidden sm:block bg-[#1c1b21] border border-[#2a2930] rounded-xl overflow-hidden overflow-x-auto">
@@ -5161,7 +5320,10 @@ function LaporanDrillModal({ data, apps, onClose }) {
               <div key={t.id} className={"grid " + cols + " gap-2 px-4 py-2.5 border-t border-[#2a2930] text-sm items-center"}>
                 <span className="text-[#9a99a1]">{t.date}</span>
                 <span className="text-[#E2E8F0] truncate" title={t.guestName}>{t.guestName}</span>
-                <span className="text-[#9a99a1] truncate">{appName(t.appId)}</span>
+                <span className="text-[#9a99a1] min-w-0">
+                  <span className="block truncate">{appName(t.appId)}</span>
+                  <span className="block mt-0.5"><PaymentBadge method={t.paymentMethod} /></span>
+                </span>
                 <span className="text-[#9a99a1] min-w-0">
                   <span className="block truncate" title={t.activityName}>{t.activityName}</span>
                   {(t.addOns || []).length > 0 && <span className="block text-[10px] text-[#C6A15B] truncate">+ {(t.addOns || []).map((a) => a.name).join(", ")}</span>}
@@ -5190,7 +5352,7 @@ function LaporanDrillModal({ data, apps, onClose }) {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-[#E2E8F0] font-semibold truncate">{t.guestName}</p>
-                    <p className="text-xs text-[#6b6a72]">{t.date} · {appName(t.appId)} · {t.pax} pax</p>
+                    <p className="text-xs text-[#6b6a72]">{t.date} · {appName(t.appId)} · {t.pax} pax · {paymentLabel(t.paymentMethod)}</p>
                     <p className="text-xs text-[#9a99a1] truncate">{t.activityName}</p>
                   </div>
                   <span className="text-green-400 font-semibold whitespace-nowrap">{idr(txRevenue(t))}</span>
