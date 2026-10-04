@@ -236,6 +236,9 @@ const TRANSLATIONS = {
     packages_subtitle: "Every package includes genuine 925 silver, hands-on guidance from our artisans, and a certificate of completion.",
     select_customize: "Select & Customize", whats_included: "What's Included",
     footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Prototype build — not for production use",
+    class_page_title: "Silver {type} Making Class in Legian, Bali", class_by: "by Family Silver Class Bali", class_per_person: "per person",
+    class_duration: "About 2 hours", class_slots: "Class times", class_back: "All classes", class_ask_whatsapp: "Ask on WhatsApp",
+    class_view_page: "View class page", footer_classes: "Our classes",
     language_label: "Language", currency_label: "Currency",
     booking_modal_title: "Complete Your Booking", form_name: "Full Name", form_email: "Email Address",
     form_whatsapp: "Active WhatsApp Number", form_date: "Preferred Date", form_slot: "Preferred Time Slot",
@@ -289,6 +292,9 @@ const TRANSLATIONS = {
     packages_subtitle: "Setiap paket termasuk bahan perak 925 asli, bimbingan pengrajin, dan sertifikat kelulusan.",
     select_customize: "Pilih & Sesuaikan", whats_included: "Yang Anda Dapatkan",
     footer_rights: "Family Silver Class Bali · Legian, Kuta, Bali", footer_prototype: "Build prototipe — bukan untuk produksi",
+    class_page_title: "Kelas Membuat {type} Perak di Legian, Bali", class_by: "oleh Family Silver Class Bali", class_per_person: "per orang",
+    class_duration: "Sekitar 2 jam", class_slots: "Jam kelas", class_back: "Semua kelas", class_ask_whatsapp: "Tanya via WhatsApp",
+    class_view_page: "Lihat halaman kelas", footer_classes: "Kelas kami",
     language_label: "Bahasa", currency_label: "Mata Uang",
     booking_modal_title: "Lengkapi Pemesanan Anda", form_name: "Nama Lengkap", form_email: "Alamat Email",
     form_whatsapp: "Nomor WhatsApp Aktif", form_date: "Tanggal Pilihan", form_slot: "Slot Waktu Pilihan",
@@ -713,6 +719,14 @@ const ICON_OPTIONS = [
 ];
 const iconFor = (key) => (ICON_OPTIONS.find((o) => o.key === key) || ICON_OPTIONS[0]).icon;
 const pkgName = (jt, lang) => (jt.custom ? jt.name : tr(lang, "jewelry_" + jt.id));
+
+// Each class has its own shareable URL (/class/ring, ...) for Google Things to Do,
+// ad sitelinks and social links. vercel.json rewrites these paths to index.html.
+const classPath = (id) => "/class/" + encodeURIComponent(id);
+function classIdFromPath(pathname) {
+  const m = /^\/class\/([^/]+)\/?$/.exec(pathname || "");
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 const initialCatalog = [
   { id: "ring", custom: false, iconKey: "gem", basePrice: 450000, baseGrams: 5, coverPhoto: PACKAGE_PHOTOS.ring, gallery: ["FAMILY SILVER CLASS_0002.jpg", "FAMILY SILVER CLASS_0004.jpg"], slots: [...DEFAULT_SLOTS] },
@@ -1788,7 +1802,7 @@ function PackageDetailModal({ open, onClose, lang, name, pkgContent, directions,
 /*  CUSTOMER — PACKAGES PAGE                                           */
 /* ------------------------------------------------------------------ */
 
-function PackagesPage({ lang, currency, catalog, perGram, extras, settings, onBookingConfirm, content }) {
+function PackagesPage({ lang, currency, catalog, perGram, extras, settings, onBookingConfirm, content, onOpenClass }) {
   const t = (k, v) => tr(lang, k, v);
   const [detailPkg, setDetailPkg] = useState(null);
   const [calcTypeId, setCalcTypeId] = useState(null);
@@ -1820,18 +1834,22 @@ function PackagesPage({ lang, currency, catalog, perGram, extras, settings, onBo
               <div className="bg-[#1c1b21] p-5 flex flex-col flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <Icon className="w-4 h-4 text-[#C6A15B]" />
-                  <h3 className="text-[#E2E8F0] font-semibold">{name}</h3>
+                  <h3 className="text-[#E2E8F0] font-semibold">
+                    <a href={classPath(jt.id)} onClick={(e) => { e.preventDefault(); onOpenClass(jt.id); }} className="hover:text-[#C6A15B]">{name}</a>
+                  </h3>
                 </div>
                 <p className="text-2xl font-bold text-[#E2E8F0] mb-1">{formatPrice(jt.basePrice, currency)}</p>
                 <p className="text-xs text-[#9a99a1] mb-3 flex-1">
                   {t("includes_base", { grams: jt.baseGrams, type: name.toLowerCase() })}
                 </p>
-                <button
-                  onClick={() => setDetailPkg(jt.id)}
-                  className="text-xs text-[#C6A15B] hover:underline mb-3 text-left"
-                >
-                  {t("view_details")}
-                </button>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 mb-3">
+                  <button onClick={() => setDetailPkg(jt.id)} className="text-xs text-[#C6A15B] hover:underline text-left">
+                    {t("view_details")}
+                  </button>
+                  <a href={classPath(jt.id)} onClick={(e) => { e.preventDefault(); onOpenClass(jt.id); }} className="text-xs text-[#C6A15B] hover:underline">
+                    {t("class_view_page")}
+                  </a>
+                </div>
                 <GlowButton className="w-full" onClick={() => setCalcTypeId(jt.id)}>
                   {t("select_customize")}
                 </GlowButton>
@@ -1873,10 +1891,153 @@ function PackagesPage({ lang, currency, catalog, perGram, extras, settings, onBo
 }
 
 /* ------------------------------------------------------------------ */
+/*  CUSTOMER — CLASS PAGE (/class/:id, one page per class)             */
+/* ------------------------------------------------------------------ */
+
+function ClassPage({ lang, currency, catalog, perGram, extras, settings, content, classId, onBookingConfirm, onBack }) {
+  const t = (k, v) => tr(lang, k, v);
+  const type = catalog.find((x) => x.id === classId);
+  const c = content[lang] || content.en || {};
+  const pkg = type ? ((c.packages && c.packages[type.id]) || (content.en && content.en.packages && content.en.packages[type.id]) || null) : null;
+  const name = type ? pkgName(type, lang) : "";
+  const title = type ? (type.custom ? name : t("class_page_title", { type: name })) : "";
+  const digits = (settings.whatsappNumber || "").replace(/[^0-9]/g, "");
+  const photos = type ? [type.coverPhoto, ...(type.gallery || [])].filter(Boolean) : [];
+  const [activePhoto, setActivePhoto] = useState(0);
+  const includesList = ((pkg && pkg.includes) || "").split("\n").map((s) => s.trim()).filter(Boolean);
+  const excludesList = ((pkg && pkg.excludes) || "").split("\n").map((s) => s.trim()).filter(Boolean);
+  const slots = type && type.slots && type.slots.length ? type.slots : DEFAULT_SLOTS;
+
+  useEffect(() => { window.scrollTo(0, 0); setActivePhoto(0); }, [classId]);
+
+  // Per-class title, description and canonical URL so search engines index each class page on its own.
+  useEffect(() => {
+    if (!type) return undefined;
+    const prevTitle = document.title;
+    document.title = title + " | Family Silver Class Bali";
+    let meta = document.querySelector('meta[name="description"]');
+    const createdMeta = !meta;
+    if (!meta) { meta = document.createElement("meta"); meta.name = "description"; document.head.appendChild(meta); }
+    const prevDesc = meta.content;
+    meta.content = (pkg && pkg.description) || title;
+    let canonical = document.querySelector('link[rel="canonical"]');
+    const createdCanonical = !canonical;
+    if (!canonical) { canonical = document.createElement("link"); canonical.rel = "canonical"; document.head.appendChild(canonical); }
+    const prevCanonical = canonical.href;
+    canonical.href = "https://familysilverclassbali.com" + classPath(type.id);
+    return () => {
+      document.title = prevTitle;
+      if (createdMeta) meta.remove(); else meta.content = prevDesc;
+      if (createdCanonical) canonical.remove(); else canonical.href = prevCanonical;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type && type.id, title, pkg && pkg.description]);
+
+  if (!type) {
+    return (
+      <section className="max-w-3xl mx-auto px-5 sm:px-8 py-24 text-center">
+        <p className="text-[#9a99a1] mb-6">This class could not be found.</p>
+        <GlowButton onClick={onBack}>{t("class_back")}</GlowButton>
+      </section>
+    );
+  }
+
+  const waText = "Hi! I'm interested in the " + title + ".";
+  const mainPhoto = photos[activePhoto] || photos[0];
+
+  return (
+    <section className="max-w-7xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+      <a href="/" onClick={(e) => { e.preventDefault(); onBack(); }} className="inline-flex items-center gap-1 text-sm text-[#9a99a1] hover:text-[#C6A15B] mb-6">
+        <ChevronLeft className="w-4 h-4" /> {t("class_back")}
+      </a>
+
+      <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mb-12">
+        <div>
+          <div className="aspect-[4/3] rounded-2xl overflow-hidden border border-[#2a2930] bg-[#1c1b21]">
+            {mainPhoto ? <img src={photo(mainPhoto)} alt={title} className="w-full h-full object-cover" /> : null}
+          </div>
+          {photos.length > 1 && (
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+              {photos.map((p, i) => (
+                <button key={i} onClick={() => setActivePhoto(i)} className={"w-20 h-20 shrink-0 rounded-lg overflow-hidden border-2 transition-colors " + (i === activePhoto ? "border-[#C6A15B]" : "border-transparent opacity-70 hover:opacity-100")}>
+                  <img src={photo(p)} alt="" className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h1 className="text-3xl sm:text-4xl font-bold text-[#E2E8F0] mb-2 leading-tight">{title}</h1>
+          <p className="text-sm text-[#C6A15B] mb-6">{t("class_by")}</p>
+
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-1 mb-1">
+            <span className="text-3xl font-bold text-[#E2E8F0]">{formatPrice(type.basePrice, "IDR")}</span>
+            <span className="text-sm text-[#9a99a1] mb-1">{t("class_per_person")}</span>
+            {currency !== "IDR" && <span className="text-sm text-[#6b6a72] mb-1">≈ {formatPrice(type.basePrice, currency)}</span>}
+          </div>
+          <p className="text-xs text-[#9a99a1] mb-6">{t("includes_base", { grams: type.baseGrams, type: name.toLowerCase() })}</p>
+
+          <div className="space-y-2.5 text-sm text-[#c7c6cc] mb-6">
+            <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-[#C6A15B] shrink-0" /> {t("class_duration")}</p>
+            <p className="flex items-center gap-2"><Calendar className="w-4 h-4 text-[#C6A15B] shrink-0" /> {t("class_slots")}: {slots.join(", ")}</p>
+            <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-[#C6A15B] shrink-0" /> {settings.mapAddress || "Jl. Padma Utara, Legian, Kuta, Bali"}</p>
+            {settings.googleRating && settings.googleReviewCount ? (
+              <p className="flex items-center gap-2"><Star className="w-4 h-4 text-[#C6A15B] shrink-0 fill-[#C6A15B]" /> {Number(settings.googleRating).toFixed(1)} · {settings.googleReviewCount}+ Google reviews</p>
+            ) : null}
+          </div>
+
+          {pkg && pkg.description && <p className="text-[#c7c6cc] leading-relaxed mb-6">{pkg.description}</p>}
+
+          {includesList.length > 0 && (
+            <div className="mb-5">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-[#C6A15B] mb-2">{t("whats_included")}</h2>
+              <ul className="space-y-1.5">
+                {includesList.map((item, i) => (<li key={i} className="flex items-start gap-2 text-sm text-[#c7c6cc]"><CheckCircle2 className="w-4 h-4 text-green-400 shrink-0 mt-0.5" /> {item}</li>))}
+              </ul>
+            </div>
+          )}
+          {excludesList.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-[#9a99a1] mb-2">{t("pkg_excludes_title")}</h2>
+              <ul className="space-y-1.5">
+                {excludesList.map((item, i) => (<li key={i} className="flex items-start gap-2 text-sm text-[#9a99a1]"><X className="w-4 h-4 text-red-400/70 shrink-0 mt-0.5" /> {item}</li>))}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3">
+            <GlowButton onClick={() => { const el = document.getElementById("class-booking"); if (el) el.scrollIntoView({ behavior: "smooth" }); }}>
+              <Sparkles className="w-4 h-4" /> {t("book_now")}
+            </GlowButton>
+            {digits && (
+              <a href={"https://wa.me/" + digits + "?text=" + encodeURIComponent(waText)} target="_blank" rel="noreferrer" onClick={trackWhatsAppConversion} className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-semibold text-sm border border-[#25D366]/50 text-[#25D366] hover:bg-[#25D366]/10 transition-colors">
+                <MessageSquare className="w-4 h-4" /> {t("class_ask_whatsapp")}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div id="class-booking" className="scroll-mt-20">
+        <PackageCalculator catalog={catalog} perGram={perGram} extras={extras} lang={lang} currency={currency} typeId={type.id} settings={settings} onBookingConfirm={onBookingConfirm} />
+      </div>
+
+      {c.directions && (
+        <div className="mt-4 bg-[#1c1b21] border border-[#2a2930] rounded-xl p-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#C6A15B] mb-2 flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> {t("pkg_directions_title")}</h2>
+          <p className="text-sm text-[#9a99a1] leading-relaxed">{c.directions}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  CUSTOMER — OUR PACKAGES (HOMEPAGE TEASER)                          */
 /* ------------------------------------------------------------------ */
 
-function PackagesTeaser({ lang, currency, catalog, onExplore }) {
+function PackagesTeaser({ lang, currency, catalog, onExplore, onOpenClass }) {
   const t = (k, v) => tr(lang, k, v);
   const [itemsPerView, setItemsPerView] = useState(3);
   const [slide, setSlide] = useState(0);
@@ -1941,13 +2102,15 @@ function PackagesTeaser({ lang, currency, catalog, onExplore }) {
                     <div className="bg-[#1c1b21] p-5 flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <Icon className="w-4 h-4 text-[#C6A15B]" />
-                        <h3 className="text-[#E2E8F0] font-semibold">{name}</h3>
+                        <h3 className="text-[#E2E8F0] font-semibold">
+                          <a href={classPath(jt.id)} onClick={(e) => { e.preventDefault(); onOpenClass(jt.id); }} className="hover:text-[#C6A15B]">{name}</a>
+                        </h3>
                       </div>
                       <p className="text-2xl font-bold text-[#E2E8F0] mb-1">{formatPrice(jt.basePrice, currency)}</p>
                       <p className="text-xs text-[#9a99a1] mb-4 flex-1">
                         {t("includes_base", { grams: jt.baseGrams, type: name.toLowerCase() })}
                       </p>
-                      <GlowButton className="w-full" onClick={onExplore}>{t("select_customize")}</GlowButton>
+                      <GlowButton className="w-full" onClick={() => onOpenClass(jt.id)}>{t("select_customize")}</GlowButton>
                     </div>
                   </div>
                 </div>
@@ -2817,13 +2980,23 @@ function SEOTechnicalPanel({ content, catalog, lang, currency }) {
 /*  CUSTOMER — FOOTER                                                  */
 /* ------------------------------------------------------------------ */
 
-function Footer({ lang, whatsappNumber }) {
+function Footer({ lang, whatsappNumber, catalog, onOpenClass }) {
   const t = (k) => tr(lang, k);
   const digits = (whatsappNumber || "").replace(/[^0-9]/g, "");
   return (
     <footer className="mt-10">
       <div className="divider-luxury" />
       <div className="max-w-7xl mx-auto px-5 sm:px-8 py-10 flex flex-col items-center justify-center gap-3 text-xs text-[#6b6a72]">
+        {catalog && catalog.length > 0 && (
+          <nav className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm" aria-label={t("footer_classes")}>
+            <span className="text-[#6b6a72]">{t("footer_classes")}:</span>
+            {catalog.map((jt) => (
+              <a key={jt.id} href={classPath(jt.id)} onClick={(e) => { e.preventDefault(); onOpenClass(jt.id); }} className="text-[#9a99a1] hover:text-[#C6A15B]">
+                {jt.custom ? jt.name : tr(lang, "class_page_title", { type: pkgName(jt, lang) })}
+              </a>
+            ))}
+          </nav>
+        )}
         {digits && (
           <a
             href={"https://wa.me/" + digits}
@@ -2913,6 +3086,29 @@ function BlogPostPage({ post, onBack }) {
 function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, content, catalog, perGram, extras, reviews, settings, galleryPhotos, guestGalleryPhotos, instructors, asSeenIn, heroPhotos, instagramPhotos, setReservations, blogPosts }) {
   const goPackages = () => setPage("packages");
   const [selectedPostId, setSelectedPostId] = useState(null);
+  const [classId, setClassId] = useState(() => (typeof window !== "undefined" ? classIdFromPath(window.location.pathname) : null));
+  const openClass = (id) => { setClassId(id); setPage("class"); };
+
+  // Keep the address bar in step with in-app navigation: class pages get their
+  // own URL (shareable, indexable); every other page lives at "/".
+  useEffect(() => {
+    const current = window.location.pathname;
+    let want = null;
+    if (page === "class" && classId) { if (current !== classPath(classId)) want = classPath(classId); }
+    else if (classIdFromPath(current)) want = "/";
+    if (!want) return;
+    try { window.history.pushState(null, "", want); } catch { /* e.g. preview.html opened from disk */ }
+  }, [page, classId]);
+
+  useEffect(() => {
+    const onPop = () => {
+      const id = classIdFromPath(window.location.pathname);
+      if (id) { setClassId(id); setPage("class"); } else { setPage((p) => (p === "class" ? "home" : p)); }
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Schema.org data for search engines, built from the live CMS content.
   useEffect(() => {
@@ -2939,7 +3135,7 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
         price: Number(p.basePrice) || 0,
         priceCurrency: "IDR",
         availability: "https://schema.org/InStock",
-        url: origin + "/",
+        url: origin + classPath(p.id),
         itemOffered: {
           "@type": "Service",
           name: labels[p.id] || "Silver Jewelry Making Class",
@@ -2982,7 +3178,7 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
           <Hero content={content[lang]} lang={lang} onBook={goPackages} onExplore={goPackages} heroPhotos={heroPhotos} />
           <PromoCountdown lang={lang} deadline={settings.promoDeadline} />
           <AsSeenInStrip lang={lang} badges={asSeenIn} />
-          <PackagesTeaser lang={lang} currency={currency} catalog={catalog} onExplore={goPackages} />
+          <PackagesTeaser lang={lang} currency={currency} catalog={catalog} onExplore={goPackages} onOpenClass={openClass} />
           <StepsSection lang={lang} steps={content[lang].steps} />
           <WhyUsSection lang={lang} items={content[lang].whyUs} />
           <StatsSection lang={lang} stats={content[lang].stats} />
@@ -2995,15 +3191,17 @@ function CustomerPage({ page, setPage, lang, setLang, currency, setCurrency, con
           <FaqSection lang={lang} faq={content[lang].faq} />
           <StickyBookBar lang={lang} onBook={goPackages} />
         </>
+      ) : page === "class" ? (
+        <ClassPage lang={lang} currency={currency} catalog={catalog} perGram={perGram} extras={extras} settings={settings} content={content} classId={classId} onBookingConfirm={onBookingConfirm} onBack={goPackages} />
       ) : page === "blog" ? (
         <BlogListPage posts={blogPosts} onOpenPost={(id) => { setSelectedPostId(id); setPage("blog-post"); }} />
       ) : page === "blog-post" ? (
         <BlogPostPage post={(blogPosts || []).find((p) => p.id === selectedPostId)} onBack={() => setPage("blog")} />
       ) : (
-        <PackagesPage lang={lang} currency={currency} catalog={catalog} perGram={perGram} extras={extras} settings={settings} onBookingConfirm={onBookingConfirm} content={content} />
+        <PackagesPage lang={lang} currency={currency} catalog={catalog} perGram={perGram} extras={extras} settings={settings} onBookingConfirm={onBookingConfirm} content={content} onOpenClass={openClass} />
       )}
 
-      <Footer lang={lang} whatsappNumber={settings.whatsappNumber} />
+      <Footer lang={lang} whatsappNumber={settings.whatsappNumber} catalog={catalog} onOpenClass={openClass} />
       <FloatingWhatsApp whatsappNumber={settings.whatsappNumber} />
       <ChatAssistant whatsappNumber={settings.whatsappNumber} />
     </div>
@@ -6087,7 +6285,7 @@ export default function FamilySilverClassBaliApp() {
   });
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(() => (typeof window !== "undefined" && classIdFromPath(window.location.pathname) ? "class" : "home"));
   const [lang, setLang] = useState("en");
   const [currency, setCurrency] = useState("USD");
   const [content, setContent] = useState(buildInitialContent);
