@@ -8,8 +8,7 @@ import { createClient } from "@supabase/supabase-js";
 const MODEL = process.env.CHAT_MODEL || "claude-opus-5-5";
 const MAX_MESSAGES = 20;
 const MAX_CHARS_PER_MESSAGE = 1000;
-const RATE_WINDOW_MS = 10 * 60 * 1000;
-const RATE_MAX_REQUESTS = 30;
+const MAX_CHARS_TOTAL = 6000;
 const FACTS_TTL_MS = 5 * 60 * 1000;
 const WHATSAPP_DISPLAY = "+62 859-2981-2666";
 
@@ -17,25 +16,15 @@ const supabase = process.env.VITE_SUPABASE_URL && process.env.VITE_SUPABASE_ANON
   ? createClient(process.env.VITE_SUPABASE_URL, process.env.VITE_SUPABASE_ANON_KEY, { auth: { persistSession: false } })
   : null;
 
-// Best-effort, per instance: serverless instances don't share memory, so the
-// real spending guard is the monthly limit set in the Anthropic Console.
-const hits = new Map();
-function rateLimited(ip) {
-  const now = Date.now();
-  const recent = (hits.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
-  recent.push(now);
-  hits.set(ip, recent);
-  return recent.length > RATE_MAX_REQUESTS;
-}
-
-// Only the website itself may use this endpoint, so it can't be used as a free proxy.
+// Browsers can't fake Origin, and the JSON content type forces a CORS preflight
+// (which this handler never approves), so other sites can't call this endpoint.
+// Scripts can still fake both; the shared quota (chat_take_quota) caps their cost.
 function originAllowed(origin) {
   if (!origin) return false;
   try {
     const { hostname, protocol } = new URL(origin);
     if (hostname === "localhost" || hostname === "127.0.0.1") return true;
-    if (protocol !== "https:") return false;
-    return hostname === "familysilverclassbali.com" || hostname.endsWith(".familysilverclassbali.com") || hostname.endsWith(".vercel.app");
+    return protocol === "https:" && (hostname === "familysilverclassbali.com" || hostname === "www.familysilverclassbali.com");
   } catch {
     return false;
   }
@@ -48,9 +37,11 @@ function validMessages(body) {
     role: m && m.role === "assistant" ? "assistant" : "user",
     content: m && typeof m.content === "string" ? m.content.trim().slice(0, MAX_CHARS_PER_MESSAGE) : "",
   }));
+  if (messages.some((m) => !m.content)) return null;
+  let total = messages.reduce((s, m) => s + m.content.length, 0);
+  while (messages.length > 1 && total > MAX_CHARS_TOTAL) total -= messages.shift().content.length;
   while (messages.length && messages[0].role !== "user") messages.shift();
   if (!messages.length || messages[messages.length - 1].role !== "user") return null;
-  if (messages.some((m) => !m.content)) return null;
   return messages;
 }
 
@@ -119,19 +110,31 @@ function todayInBali() {
 }
 
 export default async function handler(req, res) {
+  // The widget asks first, so the chat button only appears once the key is set.
+  if (req.method === "GET") return res.status(200).json({ configured: Boolean(process.env.ANTHROPIC_API_KEY) });
   if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
+    res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "method_not_allowed" });
   }
   if (!originAllowed(req.headers.origin)) return res.status(403).json({ error: "forbidden" });
+  if (!String(req.headers["content-type"] || "").toLowerCase().startsWith("application/json")) {
+    return res.status(415).json({ error: "json_required" });
+  }
   if (!process.env.ANTHROPIC_API_KEY) return res.status(503).json({ error: "not_configured" });
 
-  const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
-  if (rateLimited(ip)) return res.status(429).json({ error: "rate_limited" });
-
-  const body = typeof req.body === "string" ? safeJson(req.body) : req.body;
-  const messages = validMessages(body);
+  const messages = validMessages(req.body && typeof req.body === "object" ? req.body : null);
   if (!messages) return res.status(400).json({ error: "invalid_messages" });
+
+  // Vercel sets x-forwarded-for itself, so the first entry is the real client IP.
+  const ip = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim() || "unknown";
+  if (!supabase) return res.status(503).json({ error: "quota_unavailable" });
+  const { data: quota, error: quotaError } = await supabase.rpc("chat_take_quota", { p_ip: ip });
+  if (quotaError) {
+    console.error("chat: quota check failed", quotaError);
+    return res.status(503).json({ error: "quota_unavailable" });
+  }
+  if (quota === "ip_limited") return res.status(429).json({ error: "rate_limited" });
+  if (quota !== "ok") return res.status(503).json({ error: "daily_limit" });
 
   let facts;
   try {
@@ -145,7 +148,9 @@ export default async function handler(req, res) {
   const isHaiku = MODEL.startsWith("claude-haiku");
   const request = {
     model: MODEL,
-    max_tokens: 2048,
+    // Replies are meant to be a few sentences at low effort; this also caps the
+    // worst-case cost of a single request on a public endpoint.
+    max_tokens: 1024,
     // The facts block is stable between requests, so it is cached; the date
     // block sits after the cache breakpoint because it changes daily.
     system: [
@@ -184,13 +189,5 @@ export default async function handler(req, res) {
     }
     console.error("chat: unexpected error", err);
     return res.status(500).json({ error: "server_error" });
-  }
-}
-
-function safeJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
   }
 }

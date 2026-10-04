@@ -187,6 +187,63 @@ $$;
 
 grant execute on function get_slot_booked_pax(text) to anon, authenticated;
 
+-- 2b) Shared spending guard for the website AI chat (api/chat.js). Every chat
+--     request calls chat_take_quota(ip) before contacting Claude: max 15 per IP
+--     per 10 minutes, 60 per IP per 24h, 300 per Bali day for the whole site.
+--     The tables have RLS and no grants; only the function touches them.
+create table if not exists chat_usage_daily (
+  day date primary key,
+  requests int not null default 0
+);
+
+create table if not exists chat_usage_ip (
+  ip text not null,
+  window_start timestamptz not null,
+  requests int not null default 0,
+  primary key (ip, window_start)
+);
+
+alter table chat_usage_daily enable row level security;
+alter table chat_usage_ip enable row level security;
+revoke all on table chat_usage_daily from anon, authenticated;
+revoke all on table chat_usage_ip from anon, authenticated;
+
+create or replace function chat_take_quota(p_ip text)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_day date := (now() at time zone 'Asia/Makassar')::date;
+  v_window timestamptz := date_trunc('hour', now()) + floor(extract(minute from now()) / 10) * interval '10 minutes';
+  v_ip text := left(coalesce(nullif(trim(p_ip), ''), 'unknown'), 64);
+  v_ip_window int;
+  v_ip_day int;
+  v_day_total int;
+begin
+  insert into chat_usage_ip (ip, window_start, requests) values (v_ip, v_window, 1)
+  on conflict (ip, window_start) do update set requests = chat_usage_ip.requests + 1
+  returning requests into v_ip_window;
+  if v_ip_window > 15 then return 'ip_limited'; end if;
+
+  select coalesce(sum(requests), 0) into v_ip_day
+  from chat_usage_ip where ip = v_ip and window_start > now() - interval '24 hours';
+  if v_ip_day > 60 then return 'ip_limited'; end if;
+
+  insert into chat_usage_daily (day, requests) values (v_day, 1)
+  on conflict (day) do update set requests = chat_usage_daily.requests + 1
+  returning requests into v_day_total;
+  if v_day_total > 300 then return 'daily_limited'; end if;
+
+  delete from chat_usage_ip where window_start < now() - interval '2 days';
+  return 'ok';
+end;
+$$;
+
+revoke all on function chat_take_quota(text) from public;
+grant execute on function chat_take_quota(text) to anon, authenticated;
+
 -- 3) Storage bucket for admin-uploaded photos (Hero Carousel, Homepage
 --    galleries, package covers, instructor photos, step-by-step photos,
 --    etc). Photos are public to read (they're shown on the public site);
